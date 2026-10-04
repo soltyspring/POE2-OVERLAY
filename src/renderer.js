@@ -40,7 +40,7 @@ function renderRows() {
         exalted.title=row.totalEx.toLocaleString('ko-KR',{maximumFractionDigits:20})+' 엑잘';
         record.price.append(exalted,divine);
       }
-      const label=row.priceKind==='candidate-minimum'?'고유 후보 최저 · ':['unique-minimum','gem-minimum','waystone-minimum'].includes(row.priceKind)?'조회 최저 · ':'';
+      const label=row.priceKind==='base-minimum'?'베이스 최저 · ':row.priceKind==='candidate-minimum'?'고유 후보 최저 · ':['unique-minimum','gem-minimum','waystone-minimum'].includes(row.priceKind)?'조회 최저 · ':'';
       record.note.textContent=label+row.status+(row.kind==='candidate'?' · '+[...new Set(row.candidates)].slice(0,8).join(', '):row.unitEx!==null?' · 개당 '+money(row.unitEx)+' 엑잘':'');
       record.button.hidden=!row.url;
     }

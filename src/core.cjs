@@ -87,8 +87,9 @@ function applyGearPrices(row, result) {
   const candidate = row.kind === 'candidate';
   row.unitEx = prices[0];
   row.totalEx = row.unitEx * row.count;
-  row.priceKind = candidate ? 'candidate-minimum' : row.kind === 'waystone'?'waystone-minimum':row.kind === 'gem' ? 'gem-minimum' : 'unique-minimum';
-  row.status = candidate
+  const base=['named-gear','base'].includes(row.kind);
+  row.priceKind = base?'base-minimum':candidate ? 'candidate-minimum' : row.kind === 'waystone'?'waystone-minimum':row.kind === 'gem' ? 'gem-minimum' : 'unique-minimum';
+  row.status = base?`같은 베이스 조회 ${prices.length}매물 최저 · 희귀도·옵션 미반영`:candidate
     ? `같은 베이스의 고유 후보 · 조회 ${prices.length}매물 최저 · 종류·옵션 미확정`
     :row.kind==='waystone'?`${row.tier}등급 경로석 · 조회 ${prices.length}매물 최저 · 희귀도·옵션 미반영`: row.kind === 'gem' ? `레벨 ${row.level} 동일 젬 · 조회 ${prices.length}매물 최저 · 품질 미반영` : `이름 기준 조회 ${prices.length}매물 최저 · 옵션 미반영`;
   if (result.skippedCurrencies?.length) row.status += ' · 환율 없는 매물 제외';
@@ -136,6 +137,10 @@ function parseItem(text, statEntries) {
 }
 
 function tradeQuery(item) {
+  if(['named-gear','base'].includes(item.kind)){
+    if(!item.type)throw new Error('장비 베이스 확인이 필요합니다.');
+    return {query:{status:{option:'online'},type:item.type,stats:[{type:'and',filters:[]}]},sort:{price:'asc'}};
+  }
   if(item.kind==='waystone'){
     if(!Number.isInteger(item.tier)||item.tier<1||item.tier>16)throw new Error('경로석 등급 확인이 필요합니다.');
     return {query:{status:{option:'online'},type:item.type,stats:[{type:'and',filters:[]}],filters:{map_filters:{filters:{map_tier:{min:item.tier,max:item.tier}}}}},sort:{price:'asc'}};

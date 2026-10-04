@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {scanLines,tradeQuery}=require('../src/core.cjs');
+const {scanLines,tradeQuery,applyGearPrices}=require('../src/core.cjs');
 const catalog=[{id:'unique',name:'키메라의 선회',uniqueName:'키메라의 선회',type:'루비 반지',kind:'unique'},{id:'base',name:'루비 반지',uniqueName:'키메라의 선회',type:'루비 반지',kind:'candidate'}];
 test('첨부 고유 툴팁의 두 줄을 한 아이템으로 검색한다',()=>{
   const rows=scanLines([{text:'키메라의 선회',x:54,y:7},{text:'루비 반지',x:77,y:40}],catalog,new Map());
@@ -18,5 +18,7 @@ test('사전에 없는 이름은 베이스와 결합하지만 고유 후보 가�
   const rows=scanLines([{text:'복수의 눈',x:122,y:206},{text:'에메랄드 반지',x:99,y:242},{text:'거대한 유지',x:415,y:205},{text:'균열 반지',x:427,y:242}],bases,new Map());
   assert.equal(rows.length,2);assert.deepEqual(rows.map(row=>row.name),['복수의 눈 · 에메랄드 반지','거대한 유지 · 균열 반지']);
   assert.ok(rows.every(row=>row.kind==='named-gear'&&row.totalEx===null));
+  const query=tradeQuery(rows[0]);assert.equal(query.query.type,'에메랄드 반지');assert.equal(query.query.name,undefined);assert.equal(query.query.filters,undefined);
+  applyGearPrices(rows[0],{url:'test',prices:[10,2,5]});assert.equal(rows[0].totalEx,2);assert.equal(rows[0].priceKind,'base-minimum');assert.match(rows[0].status,/희귀도·옵션 미반영/);
   assert.equal(scanLines([{text:'복수의 눈',x:500,y:206},{text:'에메랄드 반지',x:99,y:242}],bases,new Map())[0].kind,'candidate');
 });

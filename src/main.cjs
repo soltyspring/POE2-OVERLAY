@@ -83,7 +83,7 @@ async function scan(mode = 'full') {
       rows.sort((a,b)=>(b.totalEx??-1)-(a.totalEx??-1));
       publishRows(rows,data);
     };
-    const gear = rows.filter(row => row.kind === 'waystone' || row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
+    const gear = rows.filter(row => ['named-gear','base'].includes(row.kind) || row.kind === 'waystone' || row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
     const uniques=[];
     for(const row of gear){
       const hit=market.cache.get(JSON.stringify([scanLeague,gearQuery(row)]));
@@ -93,10 +93,10 @@ async function scan(mode = 'full') {
     const byName = new Map();
     for (const row of uniques) {
       const candidate = row.kind === 'candidate';
-      const searchKey = row.kind==='waystone' ? `waystone:${row.tier}` : row.kind === 'gem' ? `gem:${row.type}:${row.level}` : candidate ? `base:${row.type}` : `name:${row.uniqueName}:${row.type}`;
+      const searchKey = ['named-gear','base'].includes(row.kind)?`gear-base:${row.type}`:row.kind==='waystone' ? `waystone:${row.tier}` : row.kind === 'gem' ? `gem:${row.type}:${row.level}` : candidate ? `base:${row.type}` : `name:${row.uniqueName}:${row.type}`;
       if (!byName.has(searchKey) && byName.size >= 5) { row.status = '이번 스캔 장비·젬 검색 5종 한도 · 복사 후 조회'; continue; }
       try {
-        send('status', row.kind==='waystone' ? `${row.tier}등급 경로석 매물 조회…` : row.kind === 'gem' ? `레벨 ${row.level} 젬 최저 매물 조회: ${row.type}…` : candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
+        send('status', ['named-gear','base'].includes(row.kind)?`${row.type} 베이스 최저 매물 조회…`:row.kind==='waystone' ? `${row.tier}등급 경로석 매물 조회…` : row.kind === 'gem' ? `레벨 ${row.level} 젬 최저 매물 조회: ${row.type}…` : candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
         let result = byName.get(searchKey);
         if (!result) {
           const query=gearQuery(row);
