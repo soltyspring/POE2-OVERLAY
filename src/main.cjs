@@ -13,6 +13,7 @@ const {retryRegions,isolateYellow,padBitmap,mergeRetry}=require('./ocr-retry.cjs
 const {overlayMask,maskBitmap}=require('./capture-mask.cjs');
 const {readCopiedItem}=require('./copied-item.cjs');
 const {searchSale}=require('./sale-search.cjs');
+const {siteItemUrl}=require('./exchange.cjs');
 const {encodeBitmap,isolateLabels}=require('./ocr-bitmap.cjs');
 const ocr = new OcrWorker();
 const market = new Market({exchangeUrl:process.env.POE_EXCHANGE_URL ?? 'https://poe-exchange.tail37463f.ts.net'});
@@ -26,7 +27,7 @@ function setBusy(value) { busy = value; send('busy', value); }
 function gearQuery(row){return tradeQuery({kind:row.kind,tier:row.tier,level:row.level,name:row.kind==='candidate'?null:row.uniqueName,type:row.type,rarity:'고유',filters:[]});}
 function publishRows(rows,data) {
   const divineEx=data.prices.get('divine');
-  const payload={rows:rows.map(row=>({...row,totalDivine:Number.isFinite(divineEx)&&divineEx>0&&row.totalEx!==null?row.totalEx/divineEx:null})),updatedAt:data.updatedAt,priceSource:data.priceSource,league,warnings:data.warnings};
+  const payload={rows:rows.map(row=>({...row,siteUrl:siteItemUrl(row,data,market.exchangeUrl,league),totalDivine:Number.isFinite(divineEx)&&divineEx>0&&row.totalEx!==null?row.totalEx/divineEx:null})),updatedAt:data.updatedAt,priceSource:data.priceSource,league,warnings:data.warnings};
   const signature=JSON.stringify(payload);
   if(signature!==lastRowsSignature){lastRowsSignature=signature;send('rows',payload);}
 }
@@ -215,7 +216,9 @@ ipcMain.handle('item', async () => {
 });
 ipcMain.handle('open', async (_event, url) => {
   const parsed = new URL(url);
-  if (parsed.origin !== 'https://www.pathofexile.com' || !parsed.pathname.startsWith('/trade2/search/')) throw new Error('허용되지 않은 거래 링크입니다.');
+  const site=market.exchangeUrl?new URL(market.exchangeUrl):null;
+  const siteAllowed=site&&parsed.origin===site.origin&&parsed.pathname===site.pathname&&parsed.searchParams.has('item')&&parsed.searchParams.get('league')===league;
+  if (!siteAllowed&&(parsed.origin !== 'https://www.pathofexile.com' || !parsed.pathname.startsWith('/trade2/search/'))) throw new Error('허용되지 않은 거래 링크입니다.');
   await shell.openExternal(url);
 });
 app.on('will-quit', () => {ocr.stop();globalShortcut.unregisterAll();});

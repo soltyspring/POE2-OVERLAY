@@ -22,7 +22,7 @@ function renderRows() {
       const name=document.createElement('strong'),price=document.createElement('span'),note=document.createElement('small'),button=document.createElement('button');
       button.className='item-link';button.append(name);
       record={article,name,price,note,button,row,signature:null};
-      button.onclick=()=>window.poe.open(record.row.url).catch(error=>{el('status').textContent=error.message;});
+      button.onclick=()=>window.poe.open(record.row.siteUrl).catch(error=>{el('status').textContent=error.message;});
       article.append(button,price,note);records.set(row.key,record);
     }
     const signature=JSON.stringify(row);
@@ -48,9 +48,9 @@ function renderRows() {
       record.note.textContent=(labels[row.priceKind]||row.status)+(row.count>1&&row.unitEx!==null?' · 개당 '+money(row.unitEx)+' 엑잘':'');
       record.note.dataset.priceKind=row.priceKind||'unknown';
       record.note.title=row.status+(row.kind==='candidate'?' · '+[...new Set(row.candidates)].join(', '):'');
-      record.button.disabled=!row.url;
-      record.button.title=row.url?'공식 거래 사이트에서 매물 비교':'거래 링크가 아직 없습니다.';
-      record.button.setAttribute('aria-label',row.name+(row.url?' 매물 비교':' 거래 링크 없음'));
+      record.button.disabled=!row.siteUrl;
+      record.button.title=row.siteUrl?'POE2-Exchange에서 아이템 시세 보기':'POE2-Exchange에 대응하는 아이템이 없습니다.';
+      record.button.setAttribute('aria-label',row.name+(row.siteUrl?' Exchange 아이템 시세 보기':' Exchange 아이템 없음'));
     }
     if(el('rows').children[i]!==record.article)el('rows').insertBefore(record.article,el('rows').children[i]||null);
   }

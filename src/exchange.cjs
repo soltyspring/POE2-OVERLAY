@@ -28,6 +28,15 @@ function parseExchange(payload, league, now = Date.now()) {
   const excluded = payload.markets.filter(row => row.league === league && row.id?.startsWith('exchange:')).length - valid.length;
   if (excluded) warnings.push(`서버 시세 ${excluded}개: 오래되었거나 유효하지 않아 제외`);
   const oldest = Math.min(...valid.map(row => row.observed_at));
-  return {prices,catalog,warnings,updatedAt:new Date(oldest * 1000).toISOString(),priceSource:'POE2-Exchange DB'};
+  const siteItems=payload.markets.filter(row=>row.league===league&&typeof row.id==='string'&&typeof row.name==='string').map(row=>({id:row.id,name:row.name,type:row.base_type||null}));
+  return {prices,catalog,siteItems,warnings,updatedAt:new Date(oldest * 1000).toISOString(),priceSource:'POE2-Exchange DB'};
 }
-module.exports = { serverUrl, parseExchange };
+function siteItemUrl(row,data,base,league){
+  if(!base)return null;
+  const normalize=value=>value.replace(/\s/g,'');
+  const name=row.uniqueName||row.name.split(' · ')[0];
+  const matches=(data.siteItems||[]).filter(item=>normalize(item.name)===normalize(name)&&(!row.uniqueName||!row.type||normalize(item.type||'')===normalize(row.type)));
+  if(matches.length!==1)return null;
+  const url=new URL(base);url.search=new URLSearchParams({league,item:matches[0].id}).toString();return url.href;
+}
+module.exports = { serverUrl, parseExchange, siteItemUrl };
