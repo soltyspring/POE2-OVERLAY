@@ -70,6 +70,6 @@ el('item').onclick = async () => {
     const data = await window.poe.item();
     el('detail').textContent = `${data.item.name || data.item.type}\n확인된 옵션 ${data.item.filters.length}개 · 비교 매물 ${data.total}개\n${data.prices.length ? '엑잘 환산 매물: ' + data.prices.map(money).join(', ') : '환산 가능한 매물이 없습니다.'}\n${data.item.unmatched.length ? '검색에 포함되지 않은 수치 줄: ' + data.item.unmatched.join(' / ') : ''}\n${data.skippedCurrencies?.length ? '환율이 없어 제외한 화폐: ' + data.skippedCurrencies.join(', ') : ''}`;
     const button = document.createElement('button'); button.textContent = '공식 거래 사이트에서 비교'; button.onclick = () => window.poe.open(data.url).catch(error => { el('status').textContent = error.message; }); el('detail').append(document.createElement('br'), button);
-  } catch (error) { el('detail').textContent = error.message; }
+  } catch (error) { el('detail').textContent = error.message.replace(/^Error invoking remote method 'item':\s*(?:Error:\s*)?/,''); }
   finally { el('item').disabled = false; }
 };

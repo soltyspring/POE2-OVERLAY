@@ -113,6 +113,7 @@ function parseNinja(data) {
 }
 
 function parseItem(text, statEntries) {
+  if(typeof text!=='string'||!text.trim())throw new Error('복사된 아이템 정보가 없습니다. 인벤토리·보관함의 아이템 위에 마우스를 올리고 Ctrl+C로 복사하세요. 안 되면 Ctrl+Alt+C도 시도하세요.');
   const sections = text.replace(/\r/g, '').trim().split(/\n-{4,}\n/);
   const header = sections[0].split('\n');
   const index = header.findIndex(line => /^아이템 희귀도:/.test(line));
