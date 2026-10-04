@@ -13,3 +13,10 @@ test('떨어진 라벨과 불일치 베이스를 합치지 않고 같은 고유 
   const rows=scanLines([{text:'루비 반지',x:77,y:40},{text:'키메라의 선회',x:54,y:7},{text:'키메라의 선회',x:500,y:7},{text:'루비 반지',x:523,y:40}],catalog,new Map());
   assert.equal(rows.length,2);assert.ok(rows.every(row=>row.kind==='unique'));
 });
+test('사전에 없는 이름은 베이스와 결합하지만 고유 후보 가격으로 바꾸지 않는다',()=>{
+  const bases=[{id:'a',name:'에메랄드 반지',type:'에메랄드 반지',kind:'candidate',uniqueName:'도둑의 고통'},{id:'b',name:'균열 반지',type:'균열 반지',kind:'base'}];
+  const rows=scanLines([{text:'복수의 눈',x:122,y:206},{text:'에메랄드 반지',x:99,y:242},{text:'거대한 유지',x:415,y:205},{text:'균열 반지',x:427,y:242}],bases,new Map());
+  assert.equal(rows.length,2);assert.deepEqual(rows.map(row=>row.name),['복수의 눈 · 에메랄드 반지','거대한 유지 · 균열 반지']);
+  assert.ok(rows.every(row=>row.kind==='named-gear'&&row.totalEx===null));
+  assert.equal(scanLines([{text:'복수의 눈',x:500,y:206},{text:'에메랄드 반지',x:99,y:242}],bases,new Map())[0].kind,'candidate');
+});

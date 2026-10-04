@@ -42,9 +42,23 @@ function scanLines(lines, catalog, prices) {
       paired.set(line,options[0].type);consumed.add(options[0].base);
     }
   }
+  const namedBases=new Map();
+  for(const base of lines){
+    if(consumed.has(base))continue;
+    const entries=index.get(normalize(quantity(base.text).name))||[];
+    if(!entries.length||!entries.every(e=>['candidate','base'].includes(e.kind)))continue;
+    const types=new Set(entries.map(e=>e.type));if(types.size!==1)continue;
+    const above=lines.filter(line=>!paired.has(line)&&!namedBases.has(line)&&!consumed.has(line)&&base.y-line.y>=8&&base.y-line.y<=60&&Math.abs(base.x-line.x)<=80&&!index.has(normalize(line.text))&&/^[가-힣]+(?:\s+[가-힣]+){1,4}$/.test(line.text.trim())).sort((a,b)=>(base.y-a.y+Math.abs(base.x-a.x)*.1)-(base.y-b.y+Math.abs(base.x-b.x)*.1));
+    if(above.length){namedBases.set(above[0],entries[0].type);consumed.add(base);}
+  }
   for (const line of lines) {
     if(consumed.has(line))continue;
     const q = quantity(line.text);
+    if(namedBases.has(line)){
+      const type=namedBases.get(line);
+      rows.push({key:`named:${normalize(q.name)}:${Math.round(line.x)}:${Math.round(line.y)}`,name:`${q.name} · ${type}`,count:1,x:line.x,y:line.y,kind:'named-gear',type,candidates:[],unitEx:null,totalEx:null,status:'이름·베이스 인식 · 옵션 복사 후 조회'});
+      continue;
+    }
     const gem = q.name.match(/^(스킬|보조)(?:\s*레벨\s*(\d+))?\s*:\s*(.+)$/);
     const lookupName = gem ? gem[3].trim() : q.name;
     if (!Number.isSafeInteger(q.count) || q.count < 1) continue;
