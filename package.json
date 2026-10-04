@@ -1,0 +1,15 @@
+{
+  "name": "poe2-overlay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Korean PoE2 screen loot scanner prototype",
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "check": "node --check src/main.cjs && node --check src/core.cjs && node --check src/market.cjs && node --check src/renderer.js"
+  },
+  "devDependencies": {
+    "electron": "44.5.1"
+  }
+}
