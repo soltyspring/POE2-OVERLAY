@@ -1,10 +1,9 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'"><title>PoE2 드랍 시세</title><link rel="stylesheet" href="ui.css"></head>
 <body>
-<header><div><small>POE2 · 한국어</small><h1>드랍·보상 시세</h1></div><span id="mode" class="badge">수동 스캔</span></header>
+<header><div><small>POE2 · 한국어</small><h1>드랍·보상 시세</h1></div><span class="badge">단축키 스캔</span></header>
 <section class="scan-settings" aria-label="스캔 설정">
-<div class="controls"><label>리그<input id="league" value="Forbidden Rites" maxlength="100"></label><button id="scan" class="primary">지금 스캔 <kbd>F6</kbd></button></div>
-<div class="controls secondary"><label class="toggle"><input id="auto" type="checkbox">자동 스캔</label><label>간격<select id="interval"><option value="3000">3초</option><option value="5000">5초 · 절약</option><option value="10000">10초 · 최소 부하</option></select></label><label>인식 영역<select id="area"><option value="full">전체 화면</option><option value="rewards">오른쪽 보상 목록 · 절약</option></select></label></div>
-<p class="hint">F8로 숨기면 자동 스캔도 쉬어갑니다. 상세 매물 조회는 F6.</p>
+<div class="controls"><button id="scan" class="primary">전체 화면 <kbd>F6</kbd></button><button id="mouse">마우스 주변 <kbd>F7</kbd></button></div>
+<p class="hint">게임 모니터에 마우스를 두고 단축키를 누르세요. F7은 마우스 주변 아이템·툴팁 영역을 읽습니다.</p>
 </section>
 <div class="status-bar"><span id="activity" aria-hidden="true">●</span><p id="status" role="status">준비 중…</p></div>
 <div class="summary"><span><b id="found">0</b> 인식</span><span><b id="priced">0</b> 가격 있음</span><span class="best">최고 참고가 <b id="highest">—</b></span></div>
@@ -12,6 +11,6 @@
 <main id="rows" aria-label="가격 높은 순 아이템 목록"><p class="empty">바닥 라벨이나 보상 메뉴를 표시하고<br>게임 모니터에 마우스를 둔 뒤 F6을 누르세요.</p></main>
 <p id="meta" class="source"></p>
 <details class="panel"><summary>판매 전 옵션 비교</summary><p>게임에서 아이템 위에 마우스를 올리고 Ctrl+C로 복사하세요.</p><button id="item">복사한 아이템 조회</button><div id="detail"></div></details>
-<details class="panel diagnostics"><summary>스캔 성능·도움말</summary><p id="metrics">첫 스캔 후 처리 시간과 OCR 메모리를 표시합니다.</p><p>오른쪽 영역은 룬 보상 메뉴용입니다. 바닥 아이템은 전체 화면으로 읽으세요. 주황색 판별·툴팁 옵션 OCR은 아직 지원하지 않습니다.</p></details>
+<details class="panel diagnostics"><summary>스캔 성능·도움말</summary><p id="metrics">첫 스캔 후 처리 시간과 OCR 메모리를 표시합니다.</p><p>바닥·보상 목록은 F6, 마우스 주변은 F7로 읽으세요. 주황색 판별·툴팁 옵션 OCR은 아직 지원하지 않습니다.</p></details>
 <footer>가격은 엑잘 기준의 참고값 · 실제 판매가와 다를 수 있습니다.</footer>
 <script src="renderer.js"></script></body></html>

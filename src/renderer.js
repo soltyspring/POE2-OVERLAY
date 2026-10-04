@@ -1,11 +1,6 @@
 const el = id => document.getElementById(id);
 const money = value => value.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
-function updateMode() {el('mode').textContent=el('auto').checked?'자동 · '+Number(el('interval').value)/1000+'초':'수동 스캔';el('mode').classList.toggle('active',el('auto').checked);}
-async function configure() {await window.poe.options({interval:Number(el('interval').value),area:el('area').value});updateMode();}
-el('auto').onchange=async()=>{try {if(el('auto').checked)await configure();await window.poe.auto(el('auto').checked);updateMode();}catch(error){el('auto').checked=false;updateMode();el('status').textContent=error.message;}};
-for(const id of ['interval','area']) el(id).onchange=()=>configure().catch(error=>{el('status').textContent=error.message;});
-window.poe.onAuto(enabled=>{el('auto').checked=enabled;updateMode();});
-window.poe.onBusy(busy => { for (const id of ['scan', 'item', 'league','interval','area']) el(id).disabled = busy;document.querySelector('.status-bar').classList.toggle('working',busy); });
+window.poe.onBusy(busy => { for (const id of ['scan', 'mouse', 'item']) el(id).disabled = busy;document.querySelector('.status-bar').classList.toggle('working',busy); });
 window.poe.onStatus(text => { el('status').textContent = text; });
 window.poe.onMetrics(data=>{el('metrics').textContent=`전체 처리 ${data.totalMs}ms · ${data.engine}\n${data.reused?'같은 화면 · OCR 생략':'OCR '+data.ocrMs+'ms'} · OCR 워커 ${data.rssMB}MB\n앱 전체 또는 게임의 자원 사용량은 포함하지 않습니다.`;});
 let currentData=null;
@@ -52,15 +47,13 @@ window.poe.onRows(data => {
   const priced=data.rows.filter(row=>row.totalEx!==null);
   el('found').textContent=data.rows.length;el('priced').textContent=priced.length;
   el('highest').textContent=priced.length?money(Math.max(...priced.map(row=>row.totalEx)))+' 엑잘':'—';
-  el('meta').textContent=`${data.priceSource||'시세'} · ${data.league}\n${data.updatedAt?new Date(data.updatedAt).toLocaleString('ko-KR')+' 기준':'시세 조회 실패'}${data.warnings.length?'\n'+data.warnings.join(' / '):''}`;
+  el('meta').textContent=`${data.priceSource||'시세'}\n${data.updatedAt?new Date(data.updatedAt).toLocaleString('ko-KR')+' 기준':'시세 조회 실패'}${data.warnings.length?'\n'+data.warnings.join(' / '):''}`;
   renderRows();
 });
-el('scan').onclick = async () => { el('scan').disabled = true; try { await window.poe.league(el('league').value); await window.poe.scan(); } catch (error) { el('status').textContent = error.message; } finally { el('scan').disabled = false; } };
-el('league').onchange = () => window.poe.league(el('league').value).catch(error => { el('status').textContent = error.message; });
+for (const [id,mode] of [['scan','full'],['mouse','mouse']]) el(id).onclick = async () => {try {await window.poe.scan(mode);} catch(error) {el('status').textContent=error.message;}};
 el('item').onclick = async () => {
   el('item').disabled = true; el('detail').textContent = '거래 검색 중…';
   try {
-    await window.poe.league(el('league').value);
     const data = await window.poe.item();
     el('detail').textContent = `${data.item.name || data.item.type}\n확인된 옵션 ${data.item.filters.length}개 · 비교 매물 ${data.total}개\n${data.prices.length ? '엑잘 환산 매물: ' + data.prices.map(money).join(', ') : '환산 가능한 매물이 없습니다.'}\n${data.item.unmatched.length ? '검색에 포함되지 않은 수치 줄: ' + data.item.unmatched.join(' / ') : ''}\n${data.skippedCurrencies?.length ? '환율이 없어 제외한 화폐: ' + data.skippedCurrencies.join(', ') : ''}`;
     const button = document.createElement('button'); button.textContent = '공식 거래 사이트에서 비교'; button.onclick = () => window.poe.open(data.url).catch(error => { el('status').textContent = error.message; }); el('detail').append(document.createElement('br'), button);

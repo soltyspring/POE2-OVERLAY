@@ -7,35 +7,35 @@ const { Market } = require('./market.cjs');
 const { scanLines, parseItem, tradeQuery, applyGearPrices } = require('./core.cjs');
 const { WindowState } = require('./window-state.cjs');
 const {OcrWorker} = require('./ocr-worker.cjs');
-const {AutoScan} = require('./auto-scan.cjs');
+const {captureRegion} = require('./capture-region.cjs');
 const ocr = new OcrWorker();
 const market = new Market({exchangeUrl:process.env.POE_EXCHANGE_URL ?? 'https://poe-exchange.tail37463f.ts.net'});
-let win, windowState, busy = false, league = 'Forbidden Rites';
-const autoScan = new AutoScan(scan,()=>busy || !win || win.isDestroyed() || !win.isVisible());
+let win, windowState, busy = false;
+const league = process.env.POE_LEAGUE || 'Forbidden Rites';
 if (process.argv.includes('--smoke-test')) app.setPath('userData',path.join(os.tmpdir(),'poe2-overlay-smoke-profile'));
 let lastHash=null,lastOcr=null;
-let captureArea='full';
 let lastRowsSignature=null;
 function send(event, value) { if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) win.webContents.send(event, value); }
 function setBusy(value) { busy = value; send('busy', value); }
-async function scan(automatic = false) {
+async function scan(mode = 'full') {
   if (busy) { send('status', '현재 조회가 끝난 뒤 다시 시도하세요.'); return; }
   setBusy(true);
   const scanLeague = league;
   const started=Date.now();
   let folder;
   try {
-    send('status', '전체 화면 캡처 중…');
-    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    send('status', mode === 'mouse' ? '마우스 주변 캡처 중…' : '전체 화면 캡처 중…');
+    const cursor = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursor);
     const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 2400, height: 1350 } });
     const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : null);
     if (!source) throw new Error('마우스가 있는 모니터를 찾을 수 없습니다.');
     if (source.thumbnail.isEmpty()) throw new Error('전체 화면을 캡처할 수 없습니다.');
     let thumbnail=source.thumbnail;
     const size=thumbnail.getSize();
-    const offset=captureArea==='rewards'?Math.floor(size.width*.45):0;
-    if (offset) thumbnail=thumbnail.crop({x:offset,y:0,width:size.width-offset,height:size.height});
-    const hash=`${display.id}:${size.width}:${size.height}:${offset}:`+createHash('sha256').update(thumbnail.toBitmap()).digest('hex');
+    const region = captureRegion(mode, cursor, display.bounds, size);
+    if (mode === 'mouse') thumbnail=thumbnail.crop(region);
+    const hash=display.id+':'+JSON.stringify(region)+':'+createHash('sha256').update(thumbnail.toBitmap()).digest('hex');
     const reused=hash===lastHash && lastOcr;
     let image;
     if (!reused) {
@@ -46,7 +46,7 @@ async function scan(automatic = false) {
     windowState.show();
     const [recognized,data]=await Promise.all([reused ? Promise.resolve(lastOcr) : ocr.recognize(image),market.load(scanLeague)]);
     lastHash=hash;lastOcr=recognized;
-    const lines=offset ? recognized.lines.map(line=>({...line,x:line.x+offset})) : recognized.lines;
+    const lines=recognized.lines.map(line=>({...line,x:line.x+region.x,y:line.y+region.y}));
     const rows = scanLines(lines, data.catalog, data.prices);
     const emit=()=>{
       rows.sort((a,b)=>(b.totalEx??-1)-(a.totalEx??-1));
@@ -54,7 +54,7 @@ async function scan(automatic = false) {
       const signature=JSON.stringify(payload);
       if(signature!==lastRowsSignature){lastRowsSignature=signature;send('rows',payload);}
     };
-    if (!automatic) emit(); // Automatic scans publish once, after cached enrichment.
+    emit();
     const uniques = rows.filter(row => row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
     const byName = new Map();
     for (const row of uniques) {
@@ -62,19 +62,15 @@ async function scan(automatic = false) {
       const searchKey = row.kind === 'gem' ? `gem:${row.type}:${row.level}` : candidate ? `base:${row.type}` : `name:${row.uniqueName}:${row.type}`;
       if (!byName.has(searchKey) && byName.size >= 5) { row.status = '이번 스캔 장비·젬 검색 5종 한도 · 복사 후 조회'; continue; }
       try {
-        if (!automatic) send('status', row.kind === 'gem' ? `레벨 ${row.level} 젬 최저 매물 조회: ${row.type}…` : candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
+        send('status', row.kind === 'gem' ? `레벨 ${row.level} 젬 최저 매물 조회: ${row.type}…` : candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
         let result = byName.get(searchKey);
         if (!result) {
           const query=tradeQuery({ kind:row.kind, level:row.level, name: candidate ? null : row.uniqueName, type: row.type, rarity: '고유', filters: [] });
-          if (automatic) {
-            const cached=market.cache.get(JSON.stringify([scanLeague,query]));
-            if (!cached || Date.now()-cached.time >= 60000) {row.status='F6으로 상세 매물 조회 · 자동 스캔은 집계 시세 우선';continue;}
-            result=cached.value;
-          } else result = await market.search(scanLeague, query, data.prices);
+          result = await market.search(scanLeague, query, data.prices);
           byName.set(searchKey, result);
         }
         applyGearPrices(row, result);
-        if (!automatic) emit();
+        emit();
       } catch (error) { row.status = error.message; byName.set(searchKey, { prices: [] }); }
     }
     rows.sort((a, b) => (b.totalEx ?? -1) - (a.totalEx ?? -1));
@@ -109,13 +105,13 @@ app.whenReady().then(() => {
       win.reload();
     }
   });
-  win.webContents.on('did-finish-load', () => {lastRowsSignature=null;send('busy', busy);send('auto-state',!!autoScan.timer);});
+  win.webContents.on('did-finish-load', () => {lastRowsSignature=null;send('busy', busy);});
   win.loadFile(path.join(__dirname, 'index.html'));
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
-  const ok = globalShortcut.register('F6', () => scan(false));
-  const toggle = globalShortcut.register('F8', () => windowState.toggle());
-  win.webContents.once('did-finish-load', () => send('status', ok && toggle ? 'F6 전체 화면 스캔 · F8 표시/숨기기' : '단축키가 다른 앱에서 사용 중입니다. 스캔 버튼을 이용하세요.'));
+  const full = globalShortcut.register('F6', () => scan('full'));
+  const mouse = globalShortcut.register('F7', () => scan('mouse'));
+  win.webContents.once('did-finish-load', () => send('status', full && mouse ? 'F6 전체 화면 · F7 마우스 주변 캡처' : '단축키가 다른 앱에서 사용 중입니다. 스캔 버튼을 이용하세요.'));
   if (process.argv.includes('--smoke-test')) win.webContents.once('did-finish-load', async () => {
     try {
       const ready = await win.webContents.executeJavaScript("Boolean(window.poe && document.getElementById('scan') && document.getElementById('item'))");
@@ -131,15 +127,7 @@ app.whenReady().then(() => {
   });
 }).catch(error => { console.error('Startup failed:', error); app.quit(); });
 }
-ipcMain.handle('scan', () => scan(false));
-ipcMain.handle('auto',(_event,enabled)=>{if(typeof enabled!=='boolean') throw new Error('자동 스캔 설정 오류');autoScan.set(enabled);return enabled;});
-ipcMain.handle('scan-options',(_event,options)=>{
-  if (busy) throw new Error('현재 스캔이 끝난 뒤 설정을 바꾸세요.');
-  if (!options || !['full','rewards'].includes(options.area)) throw new Error('인식 영역 오류');
-  autoScan.setIntervalMs(options.interval);
-  captureArea=options.area;
-});
-ipcMain.handle('league', (_event, value) => { if (typeof value !== 'string' || !value.trim() || value.length > 100) throw new Error('리그 이름을 입력하세요.'); league = value.trim(); });
+ipcMain.handle('scan', (_event,mode='full') => {if (!['full','mouse'].includes(mode)) throw new Error('캡처 모드 오류');return scan(mode);});
 ipcMain.handle('item', async () => {
   if (busy) throw new Error('현재 조회가 끝난 뒤 다시 시도하세요.');
   setBusy(true);
@@ -157,5 +145,5 @@ ipcMain.handle('open', async (_event, url) => {
   if (parsed.origin !== 'https://www.pathofexile.com' || !parsed.pathname.startsWith('/trade2/search/')) throw new Error('허용되지 않은 거래 링크입니다.');
   await shell.openExternal(url);
 });
-app.on('will-quit', () => {autoScan.stop();ocr.stop();globalShortcut.unregisterAll();});
+app.on('will-quit', () => {ocr.stop();globalShortcut.unregisterAll();});
 app.on('window-all-closed', () => app.quit());

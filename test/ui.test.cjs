@@ -35,10 +35,10 @@ test('검색·확인 필요 필터·변경된 가격·삭제된 아이템을 처
   assert.equal(document.querySelectorAll('.row').length,0);assert.match(document.querySelector('.empty').textContent,/맞는 아이템/);
   dom.window.close();
 });
-test('조회 중 설정을 잠그되 자동 스캔은 중지할 수 있다',()=>{
-  const {dom,events,document}=setup();events.busy(true);
-  assert.equal(document.getElementById('interval').disabled,true);assert.equal(document.getElementById('area').disabled,true);
-  assert.equal(document.getElementById('auto').disabled,false);
-  events.auto(true);assert.match(document.getElementById('mode').textContent,/자동/);
-  events.busy(false);assert.equal(document.getElementById('interval').disabled,false);dom.window.close();
+test('두 캡처 버튼만 제공하고 조회 중 잠근다',async()=>{
+  const {dom,events,document}=setup();
+  assert.equal(document.getElementById('league'),null);assert.equal(document.getElementById('auto'),null);
+  events.busy(true);assert.equal(document.getElementById('scan').disabled,true);assert.equal(document.getElementById('mouse').disabled,true);
+  events.busy(false);const modes=[];dom.window.poe.scan=async mode=>modes.push(mode);
+  await document.getElementById('scan').onclick();await document.getElementById('mouse').onclick();assert.deepEqual(modes,['full','mouse']);dom.window.close();
 });
