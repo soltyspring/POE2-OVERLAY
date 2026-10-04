@@ -17,6 +17,7 @@ let lastHash=null,lastOcr=null;
 let lastRowsSignature=null;
 function send(event, value) { if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) win.webContents.send(event, value); }
 function setBusy(value) { busy = value; send('busy', value); }
+function gearQuery(row){return tradeQuery({kind:row.kind,tier:row.tier,level:row.level,name:row.kind==='candidate'?null:row.uniqueName,type:row.type,rarity:'고유',filters:[]});}
 function publishRows(rows,data) {
   const divineEx=data.prices.get('divine');
   const payload={rows:rows.map(row=>({...row,totalDivine:Number.isFinite(divineEx)&&divineEx>0&&row.totalEx!==null?row.totalEx/divineEx:null})),updatedAt:data.updatedAt,priceSource:data.priceSource,league,warnings:data.warnings};
@@ -82,8 +83,13 @@ async function scan(mode = 'full') {
       rows.sort((a,b)=>(b.totalEx??-1)-(a.totalEx??-1));
       publishRows(rows,data);
     };
+    const gear = rows.filter(row => row.kind === 'waystone' || row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
+    const uniques=[];
+    for(const row of gear){
+      const hit=market.cache.get(JSON.stringify([scanLeague,gearQuery(row)]));
+      if(hit)applyGearPrices(row,hit.value);else uniques.push(row);
+    }
     emit();
-    const uniques = rows.filter(row => row.kind === 'waystone' || row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
     const byName = new Map();
     for (const row of uniques) {
       const candidate = row.kind === 'candidate';
@@ -93,7 +99,7 @@ async function scan(mode = 'full') {
         send('status', row.kind==='waystone' ? `${row.tier}등급 경로석 매물 조회…` : row.kind === 'gem' ? `레벨 ${row.level} 젬 최저 매물 조회: ${row.type}…` : candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
         let result = byName.get(searchKey);
         if (!result) {
-          const query=tradeQuery({ kind:row.kind, tier:row.tier, level:row.level, name: candidate ? null : row.uniqueName, type: row.type, rarity: '고유', filters: [] });
+          const query=gearQuery(row);
           result = await market.search(scanLeague, query, data.prices);
           byName.set(searchKey, result);
         }
@@ -118,6 +124,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
 app.on('second-instance', () => { if (windowState) { windowState.visible = true; windowState.show(); win.focus(); } });
 app.whenReady().then(() => {
+  market.cacheDirectory=path.join(app.getPath('userData'),'dictionary-cache');
   win = new BrowserWindow({ width: 530, height: 760, minWidth: 450, minHeight: 400, show:!process.argv.includes('--smoke-test'), minimizable: false, focusable: true, alwaysOnTop: true, title: 'PoE2 드랍 시세', backgroundColor: '#111820', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
   win.setOpacity(0.94);
   windowState = new WindowState(win);

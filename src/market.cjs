@@ -1,6 +1,7 @@
 const { parseNinja } = require('./core.cjs');
 const { serverUrl, parseExchange } = require('./exchange.cjs');
 const {BoundedCache} = require('./bounded-cache.cjs');
+const {readDictionary,writeDictionary}=require('./dictionary-cache.cjs');
 const BASE = 'https://poe.kakaogames.com';
 function compactDictionary(key,value) {
   if(!['static','items','stats'].includes(key))return value;
@@ -59,7 +60,15 @@ class Market {
     if (hit && Date.now() - hit.time < ttl) return hit.value;
     this.pendingRequests ??= new Map();
     if(this.pendingRequests.has(key))return this.pendingRequests.get(key);
-    const pending=this.request(url).then(raw=>{const value=compactDictionary(key,raw);this.cache.set(key,{time:Date.now(),value});return value;}).finally(()=>this.pendingRequests.delete(key));
+    const pending=(async()=>{
+      const disk=await readDictionary(this.cacheDirectory,key,ttl);
+      if(disk){this.cache.set(key,disk);return disk.value;}
+      const raw=await this.request(url),value=compactDictionary(key,raw),entry={time:Date.now(),value};
+      this.cache.set(key,entry);
+      // Complete the first result without waiting for a disk write.
+      void writeDictionary(this.cacheDirectory,key,entry);
+      return value;
+    })().finally(()=>this.pendingRequests.delete(key));
     this.pendingRequests.set(key,pending);
     return pending;
   }
@@ -130,7 +139,11 @@ class Market {
     const data = await this.request(`${BASE}/api/trade2/search/${encodeURIComponent(league)}`, query);
     if (!data.id || !Array.isArray(data.result)) throw new Error('거래 검색 응답을 확인할 수 없습니다.');
     const url = `https://www.pathofexile.com/trade2/search/${encodeURIComponent(league)}/${encodeURIComponent(data.id)}`;
-    if (!data.result.length) return { url, prices: [], total: data.total };
+    if (!data.result.length) {
+      const result={url,prices:[],total:data.total};
+      this.cache.set(cacheKey,{time:Date.now(),value:result});
+      return result;
+    }
     const fetched = await this.request(`${BASE}/api/trade2/fetch/${data.result.slice(0, 10).map(encodeURIComponent).join(',')}?query=${encodeURIComponent(data.id)}`);
     const listings = fetched.result.map(r => r?.listing?.price).filter(p => Number.isFinite(p?.amount) && p.amount > 0);
     const prices = listings.filter(p => exchangeRates.has(p.currency)).map(p => p.amount * exchangeRates.get(p.currency)).sort((a,b) => a-b);
