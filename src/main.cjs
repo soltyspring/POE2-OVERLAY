@@ -12,6 +12,7 @@ const {readGeometry,saveGeometry}=require('./window-geometry.cjs');
 const {retryRegions,isolateYellow,padBitmap,mergeRetry}=require('./ocr-retry.cjs');
 const {overlayMask,maskBitmap}=require('./capture-mask.cjs');
 const {readCopiedItem}=require('./copied-item.cjs');
+const {searchSale}=require('./sale-search.cjs');
 const ocr = new OcrWorker();
 const market = new Market({exchangeUrl:process.env.POE_EXCHANGE_URL ?? 'https://poe-exchange.tail37463f.ts.net'});
 let win, windowState, busy = false;
@@ -202,7 +203,7 @@ ipcMain.handle('item', async () => {
   try {
     const item = await readCopiedItem(()=>clipboard.readText(),()=>market.stats());
     const data = await market.loadQuick(itemLeague);
-    const result = await market.search(itemLeague, tradeQuery(item), data.prices);
+    const result = await searchSale(market,itemLeague,item,data.prices);
     return { ...result, item };
   } finally { setBusy(false); }
 });

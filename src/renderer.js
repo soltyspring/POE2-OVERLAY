@@ -68,13 +68,14 @@ for (const [id,mode] of [['scan','full'],['mouse','mouse']]) el(id).onclick = as
 function renderSaleResult(data){
   const container=el('detail');container.replaceChildren();
   const title=document.createElement('strong');title.className='sale-title';title.textContent=data.item.name||data.item.type;
-  const summary=document.createElement('p');summary.className='sale-summary';summary.textContent=`옵션 ${data.item.filters.length}개 · 복사한 수치 이상 · 비교 매물 ${data.total.toLocaleString('ko-KR')}개`;
+  const summary=document.createElement('p');summary.className='sale-summary';summary.textContent=`옵션 ${data.item.filters.length}개 중 ${data.comparison?.required??data.item.filters.length}개 이상 일치 · 복사한 수치 이상 · 비교 매물 ${data.total.toLocaleString('ko-KR')}개`;
   const range=document.createElement('div');range.className='sale-range';
   const label=document.createElement('span');label.textContent='조회 매물 가격';
   const price=document.createElement('strong');price.textContent=data.prices.length?`${money(data.prices[0])}${data.prices.length>1?' ~ '+money(data.prices.at(-1)):''} 엑잘`:'조건에 맞는 환산 매물이 없습니다.';
   range.append(label,price);container.append(title,summary,range);
+  if(data.comparison?.relaxed){const warning=document.createElement('p');warning.className='selection-warning';warning.textContent='모든 옵션이 일치하는 매물이 없어 조건을 완화했습니다. 일부 옵션만 일치하는 참고 매물이며 내 아이템의 확정 시세가 아닙니다.';container.append(warning);}
   const addList=(heading,items)=>{const details=document.createElement('details'),headingNode=document.createElement('summary'),list=document.createElement('ul');details.className='option-list';headingNode.textContent=heading;for(const text of items){const li=document.createElement('li');li.textContent=text;list.append(li);}details.append(headingNode,list);container.append(details);};
-  if(data.item.filters.length)addList('검색에 포함한 옵션',data.item.filters.map(f=>f.text));
+  if(data.item.filters.length)addList(data.comparison?.relaxed?'일치 여부를 비교한 옵션':'검색에 포함한 옵션',data.item.filters.map(f=>f.text));
   if(data.item.unmatched.length){const warning=document.createElement('p');warning.className='selection-warning';warning.textContent=`옵션 ${data.item.unmatched.length}개는 검색에서 제외되었습니다.`;container.append(warning);addList('제외된 옵션 확인',data.item.unmatched);}
   if(data.skippedCurrencies?.length){const warning=document.createElement('p');warning.className='selection-warning';warning.textContent='환율이 없는 매물은 가격 비교에서 제외했습니다.';container.append(warning);}
   const button=document.createElement('button');button.textContent='공식 거래 사이트에서 비교 ↗';button.onclick=()=>window.poe.open(data.url).catch(error=>{el('status').textContent=error.message;});
