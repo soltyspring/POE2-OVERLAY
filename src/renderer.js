@@ -1,5 +1,5 @@
 const el = id => document.getElementById(id);
-const money = value => value.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+const money = formatPrice;
 window.poe.onBusy(busy => { for (const id of ['scan', 'mouse', 'item']) el(id).disabled = busy;const dot=el('activity');dot.classList.toggle('loading',busy);dot.setAttribute('aria-label',busy?'갱신 중':'대기 중');dot.title=busy?'갱신 중':'대기 중'; });
 window.poe.onStatus(text => { el('status').textContent = text; });
 window.poe.onMetrics(data=>{el('metrics').textContent=`전체 처리 ${data.totalMs}ms · ${data.engine}\n${data.reused?'같은 화면 · OCR 생략':'OCR '+data.ocrMs+'ms'} · OCR 워커 ${data.rssMB}MB\n앱 전체 또는 게임의 자원 사용량은 포함하지 않습니다.`;});
@@ -30,7 +30,16 @@ function renderRows() {
       record.row=row;record.signature=signature;
       record.name.textContent=`${row.name}${row.count>1?' ×'+row.count:''}`;
       record.price.className='price'+(row.totalEx===null?' unknown':'');
-      record.price.textContent=row.totalEx===null?'확인 필요':money(row.totalEx)+' 엑잘';
+      record.price.replaceChildren();
+      if(row.totalEx===null)record.price.textContent='확인 필요';
+      else {
+        const exalted=document.createElement('span'),divine=document.createElement('span');
+        exalted.textContent=money(row.totalEx)+' 엑잘';divine.textContent=money(row.totalDivine)+' 신성';divine.className='divine-price';
+        if(Number.isFinite(row.totalDivine))divine.title=row.totalDivine.toLocaleString('ko-KR',{maximumFractionDigits:20})+' 신성';
+        else divine.title='신성 환산 기준 없음';
+        exalted.title=row.totalEx.toLocaleString('ko-KR',{maximumFractionDigits:20})+' 엑잘';
+        record.price.append(exalted,divine);
+      }
       const label=row.priceKind==='candidate-minimum'?'고유 후보 최저 · ':['unique-minimum','gem-minimum'].includes(row.priceKind)?'조회 최저 · ':'';
       record.note.textContent=label+row.status+(row.kind==='candidate'?' · '+[...new Set(row.candidates)].slice(0,8).join(', '):row.unitEx!==null?' · 개당 '+money(row.unitEx)+' 엑잘':'');
       record.button.hidden=!row.url;

@@ -8,10 +8,11 @@ function setup(){
   const events={},opened=[];
   dom.window.poe={onRows:cb=>events.rows=cb,onAuto:cb=>events.auto=cb,onBusy:cb=>events.busy=cb,onStatus:cb=>events.status=cb,onMetrics:cb=>events.metrics=cb,
     auto:async()=>{},options:async()=>{},league:async()=>{},scan:async()=>{},item:async()=>{},open:async url=>opened.push(url)};
+  dom.window.eval(fs.readFileSync(path.join(__dirname,'../src/price-format.js'),'utf8'));
   dom.window.eval(fs.readFileSync(path.join(__dirname,'../src/renderer.js'),'utf8'));
   return {dom,events,opened,document:dom.window.document};
 }
-const priced={key:'a',name:'카오스 오브',count:3,totalEx:12,unitEx:4,status:'참고 시세',kind:'commodity',candidates:[],url:'https://www.pathofexile.com/trade2/search/Standard/test'};
+const priced={key:'a',name:'카오스 오브',count:3,totalEx:12,totalDivine:0.01234,unitEx:4,status:'참고 시세',kind:'commodity',candidates:[],url:'https://www.pathofexile.com/trade2/search/Standard/test'};
 const unknown={key:'b',name:'무거운 허리띠',count:1,totalEx:null,unitEx:null,status:'확인 필요',kind:'candidate',candidates:['A']};
 function payload(rows){return {rows,league:'Standard',priceSource:'테스트',updatedAt:null,warnings:[]};}
 test('같은 결과 갱신 시 행·버튼을 재사용하며 클릭 포커스가 유지된다',()=>{
@@ -30,7 +31,7 @@ test('검색·확인 필요 필터·변경된 가격·삭제된 아이템을 처
   assert.equal(document.querySelectorAll('.row').length,1);assert.match(document.querySelector('.row strong').textContent,/허리띠/);
   filter.value='all';filter.onchange();
   events.rows(payload([{...priced,totalEx:24,unitEx:8}]));
-  assert.equal(document.querySelectorAll('.row').length,1);assert.equal(document.querySelector('.price').textContent,'24 엑잘');
+  assert.equal(document.querySelectorAll('.row').length,1);assert.equal(document.querySelector('.price>span').textContent,'24 엑잘');assert.equal(document.querySelector('.divine-price').textContent,'0.0123 신성');
   const search=document.getElementById('search');search.value='다른 이름';search.oninput();
   assert.equal(document.querySelectorAll('.row').length,0);assert.match(document.querySelector('.empty').textContent,/맞는 아이템/);
   dom.window.close();

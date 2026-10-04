@@ -21,6 +21,7 @@ function parseExchange(payload, league, now = Date.now()) {
     catalog.push({ id, name:row.name, category, kind:'commodity' });
   }
   prices.set('exalted',1);
+  if (!prices.has('divine')) prices.set('divine',1/reference.price_divine);
   // All server values share a league reference unit; derive the conversion
   // from the exalted row rather than trusting a rounded display rate.
   const warnings = [];

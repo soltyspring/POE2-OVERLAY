@@ -50,7 +50,8 @@ async function scan(mode = 'full') {
     const rows = scanLines(lines, data.catalog, data.prices);
     const emit=()=>{
       rows.sort((a,b)=>(b.totalEx??-1)-(a.totalEx??-1));
-      const payload={rows,updatedAt:data.updatedAt,priceSource:data.priceSource,league:scanLeague,warnings:data.warnings};
+      const divineEx=data.prices.get('divine');
+      const payload={rows:rows.map(row=>({...row,totalDivine:Number.isFinite(divineEx)&&divineEx>0&&row.totalEx!==null?row.totalEx/divineEx:null})),updatedAt:data.updatedAt,priceSource:data.priceSource,league:scanLeague,warnings:data.warnings};
       const signature=JSON.stringify(payload);
       if(signature!==lastRowsSignature){lastRowsSignature=signature;send('rows',payload);}
     };
