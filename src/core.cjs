@@ -131,13 +131,17 @@ function parseItem(text, statEntries) {
     }
     const marker = raw.match(/\s*\((implicit|enchant|fractured|crafted|rune|desecrated|명시|암시|인챈트)\)\s*$/);
     const group = ({ '명시': 'explicit', '암시': 'implicit', '인챈트': 'enchant' })[marker?.[1]] || marker?.[1] || context;
-    const line = (marker ? raw.slice(0, marker.index).trim() : raw.trim()).replace(/(?<=\d)\(\s*[+-]?\d+(?:\.\d+)?\s*[-–~]\s*[+-]?\d+(?:\.\d+)?\s*\)/g,'');
+    const line = (marker ? raw.slice(0, marker.index).trim() : raw.trim()).replace(/\s*—\s*변경이 불가능한 값\s*$/,'').replace(/(?<=\d)\(\s*[+-]?\d+(?:\.\d+)?\s*[-–~]\s*[+-]?\d+(?:\.\d+)?\s*\)/g,'');
     if (!line || line.includes(':') || !/[\d]/.test(line)) continue;
     const template = line.replace(/[+-]?\d+(?:\.\d+)?/g, '#');
     const matches = group?statEntries.filter(stat => stat.id.startsWith(group + '.') && normalize(stat.text.replace(/\+#/g, '#')) === normalize(template)):[];
     const values = (line.match(/[+-]?\d+(?:\.\d+)?/g) || []).map(Number);
-    if (matches.length === 1 && values.length === 1) {
-      filters.push({ id: matches[0].id, value: { min: values[0], max: values[0] }, disabled: false, text: raw });
+    // Trade evaluates added damage ranges by their average, not either endpoint.
+    // Other modifiers with multiple numbers still require explicit support.
+    const damageRange=values.length===2 && /피해 #~# 추가$/.test(template) && values[0]<=values[1];
+    if (matches.length === 1 && (values.length === 1 || damageRange)) {
+      const value=damageRange?(values[0]+values[1])/2:values[0];
+      filters.push({ id: matches[0].id, value: { min: value, max: value }, disabled: false, text: damageRange?`${raw} · 검색 평균 ${value}`:raw });
     } else unmatched.push(raw);
     }
   }
