@@ -9,9 +9,8 @@ const records=new Map();
 const empty=document.createElement('p');empty.className='empty';
 function renderRows() {
   if(!currentData)return;
-  const query=el('search').value.replace(/\s+/g,'').toLowerCase();
   const filter=el('filter').value;
-  const rows=currentData.rows.filter(row=>row.name.replace(/\s+/g,'').toLowerCase().includes(query) && (filter==='all' || (filter==='priced' ? row.totalEx!==null : row.totalEx===null)));
+  const rows=currentData.rows.filter(row=>(filter==='all' || (filter==='priced' ? row.totalEx!==null : row.totalEx===null)));
   const allKeys=new Set(currentData.rows.map(row=>row.key));
   for(const [key,record] of records) if(!allKeys.has(key)){record.article.remove();records.delete(key);}
   const visible=new Set(rows.map(row=>row.key));
@@ -51,7 +50,7 @@ function renderRows() {
   for(const child of [...el('rows').children])if(!desiredNodes.has(child))child.remove();
   if(!rows.length){empty.textContent=currentData.rows.length?'검색·필터에 맞는 아이템이 없습니다.':'인식된 아이템이 없습니다. 라벨 표시와 인식 영역을 확인하세요.';el('rows').append(empty);}
 }
-el('search').oninput=renderRows;el('filter').onchange=renderRows;
+el('filter').onchange=renderRows;
 window.poe.onRows(data => {
   currentData=data;
   const priced=data.rows.filter(row=>row.totalEx!==null);

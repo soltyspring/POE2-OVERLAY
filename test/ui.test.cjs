@@ -25,14 +25,15 @@ test('같은 결과 갱신 시 행·버튼을 재사용하며 클릭 포커스�
   assert.equal(document.getElementById('found').textContent,'2');assert.equal(document.getElementById('priced').textContent,'1');
   dom.window.close();
 });
-test('검색·확인 필요 필터·변경된 가격·삭제된 아이템을 처리한다',()=>{
+test('확인 필요 필터·변경된 가격·삭제된 아이템을 처리한다',()=>{
   const {dom,events,document}=setup();events.rows(payload([priced,unknown]));
   const filter=document.getElementById('filter');filter.value='unknown';filter.onchange();
   assert.equal(document.querySelectorAll('.row').length,1);assert.match(document.querySelector('.row strong').textContent,/허리띠/);
   filter.value='all';filter.onchange();
   events.rows(payload([{...priced,totalEx:24,unitEx:8}]));
   assert.equal(document.querySelectorAll('.row').length,1);assert.equal(document.querySelector('.price>span').textContent,'24 엑잘');assert.equal(document.querySelector('.divine-price').textContent,'0.0123 신성');
-  const search=document.getElementById('search');search.value='다른 이름';search.oninput();
+  assert.equal(document.getElementById('search'),null);
+  filter.value='unknown';filter.onchange();
   assert.equal(document.querySelectorAll('.row').length,0);assert.match(document.querySelector('.empty').textContent,/맞는 아이템/);
   dom.window.close();
 });
