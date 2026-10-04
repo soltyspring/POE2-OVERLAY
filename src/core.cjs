@@ -60,6 +60,10 @@ function scanLines(lines, catalog, prices) {
   for (const line of lines) {
     if(consumed.has(line))continue;
     const q = quantity(line.text);
+    // "반지" is also a real unique base in the trade dictionary, but by itself
+    // commonly comes from tooltip class text or a truncated OCR label.
+    // A known unique name can still consume and use this base above.
+    if(normalize(q.name)==='반지')continue;
     if(namedBases.has(line)){
       const type=namedBases.get(line);
       rows.push({key:`named:${normalize(q.name)}:${Math.round(line.x)}:${Math.round(line.y)}`,name:`${q.name} · ${type}`,count:1,x:line.x,y:line.y,kind:'named-gear',type,candidates:[],unitEx:null,totalEx:null,status:'이름·베이스 인식 · 옵션 복사 후 조회'});

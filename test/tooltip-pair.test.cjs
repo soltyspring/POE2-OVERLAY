@@ -2,6 +2,14 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {scanLines,tradeQuery,applyGearPrices}=require('../src/core.cjs');
 const catalog=[{id:'unique',name:'키메라의 선회',uniqueName:'키메라의 선회',type:'루비 반지',kind:'unique'},{id:'base',name:'루비 반지',uniqueName:'키메라의 선회',type:'루비 반지',kind:'candidate'}];
+test('단독 종류 반지는 추가하지 않고 알려진 고유 이름의 반지 베이스는 연결한다',()=>{
+  const dictionary=[...catalog,{id:'generic',name:'반지',type:'반지',kind:'candidate',uniqueName:'칼란드라의 손길'},
+    {id:'kalandra',name:'칼란드라의 손길',uniqueName:'칼란드라의 손길',type:'반지',kind:'unique'}];
+  const rows=scanLines([{text:'반지',x:2,y:2},{text:'루비 반지',x:100,y:100}],dictionary,new Map());
+  assert.equal(rows.length,1);assert.equal(rows[0].name,'루비 반지');
+  const unique=scanLines([{text:'칼란드라의 손길',x:30,y:20},{text:'반지',x:35,y:50}],dictionary,new Map());
+  assert.equal(unique.length,1);assert.equal(unique[0].name,'칼란드라의 손길 · 반지');
+});
 test('첨부 고유 툴팁의 두 줄을 한 아이템으로 검색한다',()=>{
   const rows=scanLines([{text:'키메라의 선회',x:54,y:7},{text:'루비 반지',x:77,y:40}],catalog,new Map());
   assert.equal(rows.length,1);assert.equal(rows[0].name,'키메라의 선회 · 루비 반지');assert.equal(rows[0].kind,'unique');
