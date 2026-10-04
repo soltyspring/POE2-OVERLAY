@@ -28,12 +28,28 @@ function scanLines(lines, catalog, prices) {
   const rows = [];
   const seen = new Set();
   const index = catalogIndex(catalog);
+  const byText=new Map(),paired=new Map(),consumed=new Set();
+  for(const line of lines){const text=normalize(quantity(line.text).name);if(!byText.has(text))byText.set(text,[]);byText.get(text).push(line);}
+  for(const line of [...lines].sort((a,b)=>a.y-b.y)){
+    const names=(index.get(normalize(quantity(line.text).name))||[]).filter(item=>item.kind==='unique'&&item.type);
+    const options=[];
+    for(const type of new Set(names.map(item=>item.type)))for(const base of byText.get(normalize(type))||[]){
+      const dy=base.y-line.y,dx=Math.abs(base.x-line.x);
+      if(!consumed.has(base)&&dy>=8&&dy<=80&&dx<=180)options.push({base,type,distance:dy+dx*.1});
+    }
+    options.sort((a,b)=>a.distance-b.distance);
+    if(options.length&&(options.length===1||options[1].distance-options[0].distance>2)){
+      paired.set(line,options[0].type);consumed.add(options[0].base);
+    }
+  }
   for (const line of lines) {
+    if(consumed.has(line))continue;
     const q = quantity(line.text);
     const gem = q.name.match(/^(스킬|보조)(?:\s*레벨\s*(\d+))?\s*:\s*(.+)$/);
     const lookupName = gem ? gem[3].trim() : q.name;
     if (!Number.isSafeInteger(q.count) || q.count < 1) continue;
-    const matches = (index.get(normalize(lookupName)) || []).filter(item => gem ? item.kind === 'gem' : item.kind !== 'gem');
+    const pairedType=paired.get(line);
+    const matches = (index.get(normalize(lookupName)) || []).filter(item => pairedType ? item.kind==='unique'&&item.type===pairedType : gem ? item.kind === 'gem' : item.kind !== 'gem');
     if (!matches.length) continue;
     const key = `${normalize(q.name)}:${Math.round(line.x)}:${Math.round(line.y)}`;
     if (seen.has(key)) continue;
@@ -41,7 +57,7 @@ function scanLines(lines, catalog, prices) {
     const item = matches.length === 1 ? matches[0] : null;
     const candidateType = matches.every(m => m.kind === 'candidate' && m.type && m.type === matches[0].type) ? matches[0].type : undefined;
     const unit = item?.kind === 'commodity' ? prices.get(item.id) : undefined;
-    rows.push({ key, name: q.name, count: q.count, x: line.x, y: line.y,
+    rows.push({ key, name: pairedType?`${q.name} · ${pairedType}`:q.name, count: q.count, x: line.x, y: line.y,
       kind: item?.kind || 'candidate', type: item?.type || candidateType, tier:item?.tier, level: gem?.[2] ? Number(gem[2]) : null, uniqueName: item?.uniqueName, candidates: matches.map(m => m.uniqueName || m.name),
       unitEx: Number.isFinite(unit) && unit > 0 ? unit : null,
       totalEx: Number.isFinite(unit) && unit > 0 ? unit * q.count : null,
