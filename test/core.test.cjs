@@ -15,6 +15,16 @@ test('같은 이름의 다른 위치는 보존하고 겹친 결과만 제거한�
   const rows = scanLines(lines,catalog,new Map([['chaos',2]]));
   assert.equal(rows.length,2); assert.equal(rows[0].totalEx,6); assert.equal(rows[1].totalEx,2);
 });
+test('한국어 아이템 뒤의 영어 이름은 사전에 일치할 때만 제거한다',()=>{
+  const catalog=[{id:'charm',name:'황금 호신부',type:'황금 호신부',kind:'candidate',uniqueName:'통과의례'},
+    {id:'waystone',name:'경로석 (15등급)',type:'경로석 (15등급)',kind:'waystone',tier:15}];
+  const rows=scanLines([{text:'황금 호신부 (Golden Charm)',x:1,y:1},
+    {text:'경로석 (15등급)',x:2,y:2},{text:'알 수 없는 이름 (Golden Charm)',x:3,y:3}],catalog,new Map());
+  assert.equal(rows.length,2);
+  assert.equal(rows[0].name,'황금 호신부');assert.equal(rows[0].type,'황금 호신부');
+  assert.equal(rows[1].tier,15);
+  assert.equal(tradeQuery({type:rows[0].type,rarity:'고유',filters:[]}).query.type,'황금 호신부');
+});
 test('고유 베이스 후보를 임의로 확정하거나 희귀 이름을 가격화하지 않는다', () => {
   const catalog = [{id:'a',name:'황금 반지',kind:'candidate',uniqueName:'A'},{id:'b',name:'황금 반지',kind:'candidate',uniqueName:'B'}];
   const rows = scanLines([{text:'황금 반지',x:0,y:0},{text:'희귀 반지',x:1,y:1}],catalog,new Map([['a',100]]));

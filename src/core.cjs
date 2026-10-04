@@ -28,6 +28,12 @@ function scanLines(lines, catalog, prices) {
   const rows = [];
   const seen = new Set();
   const index = catalogIndex(catalog);
+  // Some labels append an English translation. Strip it only when the Korean
+  // label resolves exactly, leaving tiers, levels and unknown suffixes intact.
+  lines=lines.map(line=>{
+    const text=line.text.replace(/\s*[（(][A-Za-z][A-Za-z '\u2019-]*[）)]\s*$/,'').trim();
+    return text!==line.text && index.has(normalize(quantity(text).name))?{...line,text}:line;
+  });
   const byText=new Map(),paired=new Map(),consumed=new Set();
   for(const line of lines){const text=normalize(quantity(line.text).name);if(!byText.has(text))byText.set(text,[]);byText.get(text).push(line);}
   for(const line of [...lines].sort((a,b)=>a.y-b.y)){
