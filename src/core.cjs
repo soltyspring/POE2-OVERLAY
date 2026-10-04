@@ -36,7 +36,7 @@ function scanLines(lines, catalog, prices) {
     const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥•·]+\s*$/,'').trim();
     if(index.has(normalize(quantity(corrected).name)))return {...line,text:corrected};
     const noLeadingNoise=corrected.replace(/^[\d\s•/.,]+/,'').trim();
-    if(!quantity(corrected).explicit && index.has(normalize(noLeadingNoise)))return {...line,text:noLeadingNoise};
+    if(noLeadingNoise && !quantity(corrected).explicit && index.has(normalize(noLeadingNoise)))return {...line,text:noLeadingNoise};
     const withoutTier=corrected.replace(/\s*\(\d+등급\)\s*$/,'').trim();
     const tierEntries=index.get(normalize(withoutTier));
     if(withoutTier!==corrected && tierEntries?.every(e=>['base','candidate'].includes(e.kind)))return {...line,text:withoutTier};
