@@ -13,6 +13,7 @@ const {retryRegions,isolateYellow,padBitmap,mergeRetry}=require('./ocr-retry.cjs
 const {overlayMask,maskBitmap}=require('./capture-mask.cjs');
 const {readCopiedItem}=require('./copied-item.cjs');
 const {searchSale}=require('./sale-search.cjs');
+const {encodeBitmap}=require('./ocr-bitmap.cjs');
 const ocr = new OcrWorker();
 const market = new Market({exchangeUrl:process.env.POE_EXCHANGE_URL ?? 'https://poe-exchange.tail37463f.ts.net'});
 let win, windowState, busy = false;
@@ -50,10 +51,9 @@ async function captureImage(mode) {
     const reused=!!(hash===lastHash && lastOcr);
     let image,folder;
     if (!reused) {
-      if(mask)thumbnail=nativeImage.createFromBitmap(bitmap,thumbnail.getSize());
       folder = await fs.mkdtemp(path.join(os.tmpdir(), 'poe2-scan-'));
-      image = path.join(folder, 'capture.png');
-      try {await fs.writeFile(image, thumbnail.toPNG());}
+      image = path.join(folder, 'capture.bmp');
+      try {await fs.writeFile(image, encodeBitmap(bitmap,thumbnail.getSize()));}
       catch(error){await fs.rm(folder,{recursive:true,force:true});throw error;}
     }
     return {hash,reused,image,folder,region};

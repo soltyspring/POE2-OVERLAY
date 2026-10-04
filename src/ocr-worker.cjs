@@ -20,7 +20,7 @@ class OcrWorker {
         const response=JSON.parse(line.replace(/^\uFEFF/,''));
         const pending=this.pending; this.pending=null; clearTimeout(pending.timer);
         if (response.error) pending.reject(new Error(response.error)); else pending.resolve(response);
-        this.idleTimer=setTimeout(()=>{if(!this.pending)this.stop();},60000);
+        this.idleTimer=setTimeout(()=>{if(!this.pending)this.stop();},20000);
         this.idleTimer.unref();
       } catch(error) { this.fail(error); }
     });

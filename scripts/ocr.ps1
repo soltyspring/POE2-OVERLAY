@@ -23,13 +23,18 @@ try {
     $bitmap = Await-Result ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
     try {
         $result = Await-Result ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
-        $lines = @($result.Lines | ForEach-Object {
-            $words = @($_.Words)
-            $left = ($words | ForEach-Object {$_.BoundingRect.X} | Measure-Object -Minimum).Minimum
-            $top = ($words | ForEach-Object {$_.BoundingRect.Y} | Measure-Object -Minimum).Minimum
-            $right = ($words | ForEach-Object {$_.BoundingRect.X + $_.BoundingRect.Width} | Measure-Object -Maximum).Maximum
-            $bottom = ($words | ForEach-Object {$_.BoundingRect.Y + $_.BoundingRect.Height} | Measure-Object -Maximum).Maximum
-            [pscustomobject]@{ text = $_.Text; x = $left; y = $top; width = $right-$left; height = $bottom-$top }
+        $lines = @(foreach ($line in $result.Lines) {
+            $left = [double]::PositiveInfinity; $top = [double]::PositiveInfinity
+            $right = 0.0; $bottom = 0.0
+            foreach ($word in $line.Words) {
+                $bounds = $word.BoundingRect
+                $left = [Math]::Min($left, $bounds.X)
+                $top = [Math]::Min($top, $bounds.Y)
+                $right = [Math]::Max($right, $bounds.X + $bounds.Width)
+                $bottom = [Math]::Max($bottom, $bounds.Y + $bounds.Height)
+            }
+            if ([double]::IsInfinity($left)) { continue }
+            [pscustomobject]@{ text = $line.Text; x = $left; y = $top; width = $right-$left; height = $bottom-$top }
         })
         [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
         return ,$lines
