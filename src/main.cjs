@@ -13,7 +13,7 @@ const {retryRegions,isolateYellow,padBitmap,mergeRetry}=require('./ocr-retry.cjs
 const {overlayMask,maskBitmap}=require('./capture-mask.cjs');
 const {readCopiedItem}=require('./copied-item.cjs');
 const {searchSale}=require('./sale-search.cjs');
-const {encodeBitmap}=require('./ocr-bitmap.cjs');
+const {encodeBitmap,isolateLabels}=require('./ocr-bitmap.cjs');
 const ocr = new OcrWorker();
 const market = new Market({exchangeUrl:process.env.POE_EXCHANGE_URL ?? 'https://poe-exchange.tail37463f.ts.net'});
 let win, windowState, busy = false;
@@ -51,14 +51,18 @@ async function captureImage(mode) {
     maskBitmap(bitmap,thumbnail.getSize(),mask);
     const hash=display.id+':'+JSON.stringify(region)+':'+createHash('sha256').update(bitmap).digest('hex');
     const reused=!!(hash===lastHash && lastOcr);
-    let image,folder;
+    let image,originalImage,folder;
     if (!reused) {
       folder = await fs.mkdtemp(path.join(os.tmpdir(), 'poe2-scan-'));
       image = path.join(folder, 'capture.bmp');
-      try {await fs.writeFile(image, encodeBitmap(bitmap,thumbnail.getSize()));}
+      originalImage=path.join(folder,'original.bmp');
+      try {
+        await fs.writeFile(originalImage,encodeBitmap(bitmap,thumbnail.getSize()));
+        await fs.writeFile(image,encodeBitmap(isolateLabels(bitmap),thumbnail.getSize()));
+      }
       catch(error){await fs.rm(folder,{recursive:true,force:true});throw error;}
     }
-    return {hash,reused,image,folder,region};
+    return {hash,reused,image,originalImage,folder,region};
 }
 async function scan(mode = 'full') {
   if (busy) { send('status', '현재 조회가 끝난 뒤 다시 시도하세요.'); return; }
@@ -70,7 +74,7 @@ async function scan(mode = 'full') {
   try {
     send('status', mode === 'mouse' ? '마우스 주변 캡처 중…' : '전체 화면 캡처 중…');
     const captured=await captureImage(mode);
-    const {hash,reused,image,region}=captured;folder=captured.folder;
+    const {hash,reused,image,originalImage,region}=captured;folder=captured.folder;
     const captureMs=Date.now()-started;
     windowState.show();
     send('status', '아이템 이름 인식·시세 불러오는 중…');
@@ -80,7 +84,7 @@ async function scan(mode = 'full') {
     let [recognized,catalog]=await Promise.all([reused ? Promise.resolve(lastOcr) : ocr.recognize(image),market.loadCatalog()]);
     const regions=!reused&&process.env.POE_OCR_ENGINE!=='rapidocr'?retryRegions(recognized.lines,catalog,{width:region.width,height:region.height}):[];
     if(regions.length){
-      const bitmap=nativeImage.createFromPath(image);
+      const bitmap=nativeImage.createFromPath(originalImage);
       let retryMs=0;
       for(let i=0;i<regions.length;i++){
         const region=regions[i],crop=bitmap.crop(region),size=crop.getSize();

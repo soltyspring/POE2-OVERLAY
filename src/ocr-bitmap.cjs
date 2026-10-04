@@ -10,3 +10,16 @@ function encodeBitmap(pixels,{width,height}){
   pixels.copy(result,54);return result;
 }
 module.exports={encodeBitmap};
+function isolateLabels(pixels){
+  const result=Buffer.allocUnsafe(pixels.length);
+  for(let i=0;i<pixels.length;i+=4){
+    const b=pixels[i],g=pixels[i+1],r=pixels[i+2];
+    const blue=b>140&&b>r*1.35&&g>65;
+    const yellow=r>160&&g>140&&b<g*.7;
+    const white=r>170&&g>170&&b>170;
+    const value=blue||yellow||white?0:255;
+    result[i]=result[i+1]=result[i+2]=value;result[i+3]=255;
+  }
+  return result;
+}
+module.exports.isolateLabels=isolateLabels;

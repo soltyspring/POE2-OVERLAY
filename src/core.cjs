@@ -33,7 +33,7 @@ function scanLines(lines, catalog, prices) {
   lines=lines.map(line=>{
     const text=line.text.replace(/\s*[（(][A-Za-z][A-Za-z '\u2019-]*[）)]\s*$/,'').trim();
     if(index.has(normalize(quantity(text).name)))return text!==line.text?{...line,text}:line;
-    const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥]+\s*$/,'').trim();
+    const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥•·]+\s*$/,'').trim();
     if(index.has(normalize(quantity(corrected).name)))return {...line,text:corrected};
     const withoutTier=corrected.replace(/\s*\(\d+등급\)\s*$/,'').trim();
     const tierEntries=index.get(normalize(withoutTier));
