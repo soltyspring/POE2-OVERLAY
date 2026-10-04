@@ -8,8 +8,8 @@ window.poe.onRows(data => {
   for (const row of data.rows) {
     const article = document.createElement('article'); article.className = 'row';
     const name = document.createElement('strong'); name.textContent = `${row.name}${row.count > 1 ? ' ×' + row.count : ''}`;
-    const price = document.createElement('span'); price.className = 'price'; price.textContent = row.totalEx === null ? '확인 필요' : `${money(row.totalEx)} 엑잘`;
-    const note = document.createElement('small'); note.textContent = `${row.status} · ${row.totalEx === null ? [...new Set(row.candidates)].slice(0, 8).join(', ') : '개당 ' + money(row.unitEx) + ' 엑잘'} · 캡처 좌표 ${Math.round(row.x)}, ${Math.round(row.y)}`;
+    const price = document.createElement('span'); price.className = 'price'; price.textContent = row.totalEx === null ? '확인 필요' : `${row.priceKind === 'candidate-minimum' ? '후보 최저 ' : ''}${money(row.totalEx)} 엑잘`;
+    const note = document.createElement('small'); note.textContent = `${row.status} · ${row.totalEx === null || row.kind === 'candidate' ? [...new Set(row.candidates)].slice(0, 8).join(', ') : '개당 ' + money(row.unitEx) + ' 엑잘'} · 캡처 좌표 ${Math.round(row.x)}, ${Math.round(row.y)}`;
     article.append(name, price, note); el('rows').append(article);
     if (row.url) { const button = document.createElement('button'); button.textContent = '매물 비교'; button.onclick = () => window.poe.open(row.url).catch(error => { el('status').textContent = error.message; }); article.append(button); }
   }

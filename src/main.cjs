@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const { Market } = require('./market.cjs');
-const { scanLines, parseItem, tradeQuery } = require('./core.cjs');
+const { scanLines, parseItem, tradeQuery, applyGearPrices } = require('./core.cjs');
 const market = new Market();
 let win, busy = false, league = 'Standard';
 function send(event, value) { if (win && !win.isDestroyed()) win.webContents.send(event, value); }
@@ -28,24 +28,21 @@ async function scan() {
     send('status', '한국어 사전·시세 불러오는 중…');
     const data = await market.load(league);
     const rows = scanLines(lines, data.catalog, data.prices);
-    const uniques = rows.filter(row => row.kind === 'unique');
+    const uniques = rows.filter(row => row.kind === 'unique' || (row.kind === 'candidate' && row.type));
     const byName = new Map();
     for (const row of uniques) {
-      if (!byName.has(row.uniqueName) && byName.size >= 5) { row.status = '이번 스캔 고유 검색 5종 한도 · 복사 후 조회'; continue; }
+      const candidate = row.kind === 'candidate';
+      const searchKey = candidate ? `base:${row.type}` : `name:${row.uniqueName}:${row.type}`;
+      if (!byName.has(searchKey) && byName.size >= 5) { row.status = '이번 스캔 고유 검색 5종 한도 · 복사 후 조회'; continue; }
       try {
-        send('status', `고유 이름 시세 조회: ${row.uniqueName}…`);
-        let result = byName.get(row.uniqueName);
+        send('status', candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
+        let result = byName.get(searchKey);
         if (!result) {
-          result = await market.search(league, tradeQuery({ name: row.uniqueName, type: row.type, rarity: '고유', filters: [] }), data.prices);
-          byName.set(row.uniqueName, result);
+          result = await market.search(league, tradeQuery({ name: candidate ? null : row.uniqueName, type: row.type, rarity: '고유', filters: [] }), data.prices);
+          byName.set(searchKey, result);
         }
-        row.url = result.url;
-        if (result.prices.length) {
-          row.unitEx = result.prices[Math.floor(result.prices.length / 2)];
-          row.totalEx = row.unitEx * row.count;
-          row.status = `이름 기준 매물 ${result.prices.length}개 중앙값 · 옵션 미반영`;
-        } else row.status = '환산 가능한 비교 매물 없음';
-      } catch (error) { row.status = error.message; byName.set(row.uniqueName, { prices: [] }); }
+        applyGearPrices(row, result);
+      } catch (error) { row.status = error.message; byName.set(searchKey, { prices: [] }); }
     }
     rows.sort((a, b) => (b.totalEx ?? -1) - (a.totalEx ?? -1));
     send('rows', { rows, updatedAt: data.updatedAt, league, warnings: data.warnings });

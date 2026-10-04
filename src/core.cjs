@@ -20,14 +20,30 @@ function scanLines(lines, catalog, prices) {
     if (seen.has(key)) continue;
     seen.add(key);
     const item = matches.length === 1 ? matches[0] : null;
+    const candidateType = matches.every(m => m.kind === 'candidate' && m.type && m.type === matches[0].type) ? matches[0].type : undefined;
     const unit = item?.kind === 'commodity' ? prices.get(item.id) : undefined;
     rows.push({ key, name: q.name, count: q.count, x: line.x, y: line.y,
-      kind: item?.kind || 'candidate', type: item?.type, uniqueName: item?.uniqueName, candidates: matches.map(m => m.uniqueName || m.name),
+      kind: item?.kind || 'candidate', type: item?.type || candidateType, uniqueName: item?.uniqueName, candidates: matches.map(m => m.uniqueName || m.name),
       unitEx: Number.isFinite(unit) && unit > 0 ? unit : null,
       totalEx: Number.isFinite(unit) && unit > 0 ? unit * q.count : null,
       status: item?.kind === 'commodity' ? (unit > 0 ? '참고 시세' : '시세 없음') : '고유 종류·옵션 확인 필요' });
   }
   return rows.sort((a, b) => (b.totalEx ?? -1) - (a.totalEx ?? -1));
+}
+
+function applyGearPrices(row, result) {
+  row.url = result.url;
+  const prices = result.prices.filter(price => Number.isFinite(price) && price > 0).sort((a, b) => a - b);
+  if (!prices.length) { row.status = '환산 가능한 비교 매물 없음'; return row; }
+  const candidate = row.kind === 'candidate';
+  row.unitEx = candidate ? prices[0] : prices[Math.floor(prices.length / 2)];
+  row.totalEx = row.unitEx * row.count;
+  row.priceKind = candidate ? 'candidate-minimum' : 'unique-median';
+  row.status = candidate
+    ? `같은 베이스의 고유 후보 · 조회 ${prices.length}매물 최저 · 종류·옵션 미확정`
+    : `이름 기준 매물 ${prices.length}개 중앙값 · 옵션 미반영`;
+  if (result.skippedCurrencies?.length) row.status += ' · 환율 없는 매물 제외';
+  return row;
 }
 
 function parseNinja(data) {
@@ -77,4 +93,4 @@ function tradeQuery(item) {
     stats: [{ type: 'and', filters: item.filters.map(({ text, ...filter }) => filter) }],
     filters: { type_filters: { filters: { rarity: { option: ({ '고유': 'unique', '희귀': 'rare', '마법': 'magic', '일반': 'normal' })[item.rarity] || 'any' } } } } }, sort: { price: 'asc' } };
 }
-module.exports = { normalize, quantity, scanLines, parseNinja, parseItem, tradeQuery };
+module.exports = { normalize, quantity, scanLines, parseNinja, parseItem, tradeQuery, applyGearPrices };
