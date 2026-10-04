@@ -20,10 +20,10 @@ function renderRows() {
     if(!record){
       const article=document.createElement('article');article.className='row';
       const name=document.createElement('strong'),price=document.createElement('span'),note=document.createElement('small'),button=document.createElement('button');
-      button.textContent='매물 비교';
+      button.className='item-link';button.append(name);
       record={article,name,price,note,button,row,signature:null};
       button.onclick=()=>window.poe.open(record.row.url).catch(error=>{el('status').textContent=error.message;});
-      article.append(name,price,note,button);records.set(row.key,record);
+      article.append(button,price,note);records.set(row.key,record);
     }
     const signature=JSON.stringify(row);
     if(record.signature!==signature){
@@ -48,7 +48,9 @@ function renderRows() {
       record.note.textContent=(labels[row.priceKind]||row.status)+(row.count>1&&row.unitEx!==null?' · 개당 '+money(row.unitEx)+' 엑잘':'');
       record.note.dataset.priceKind=row.priceKind||'unknown';
       record.note.title=row.status+(row.kind==='candidate'?' · '+[...new Set(row.candidates)].join(', '):'');
-      record.button.hidden=!row.url;
+      record.button.disabled=!row.url;
+      record.button.title=row.url?'공식 거래 사이트에서 매물 비교':'거래 링크가 아직 없습니다.';
+      record.button.setAttribute('aria-label',row.name+(row.url?' 매물 비교':' 거래 링크 없음'));
     }
     if(el('rows').children[i]!==record.article)el('rows').insertBefore(record.article,el('rows').children[i]||null);
   }
