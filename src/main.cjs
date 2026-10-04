@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, desktopCapturer, ipcMain, clipboard, shell } = require('electron');
+const { app, BrowserWindow, globalShortcut, desktopCapturer, ipcMain, clipboard, shell, screen } = require('electron');
 const { execFile } = require('node:child_process');
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -13,14 +13,18 @@ async function scan() {
   busy = true;
   let folder;
   try {
-    send('status', '게임 화면 캡처 중…');
-    const sources = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 2400, height: 1350 } });
-    const games = sources.filter(s => /path of exile 2/i.test(s.name));
-    if (games.length !== 1) throw new Error('Path of Exile 2 게임 창 하나를 열어 주세요. 창 모드 또는 테두리 없는 창 모드를 사용하세요.');
-    if (games[0].thumbnail.isEmpty()) throw new Error('게임 화면을 캡처할 수 없습니다.');
+    send('status', '전체 화면 캡처 중…');
+    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    win.hide();
+    await new Promise(resolve => setTimeout(resolve, 180));
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 2400, height: 1350 } });
+    const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : null);
+    if (!source) throw new Error('마우스가 있는 모니터를 찾을 수 없습니다.');
+    if (source.thumbnail.isEmpty()) throw new Error('전체 화면을 캡처할 수 없습니다.');
     folder = await fs.mkdtemp(path.join(os.tmpdir(), 'poe2-scan-'));
     const image = path.join(folder, 'capture.png');
-    await fs.writeFile(image, games[0].thumbnail.toPNG());
+    await fs.writeFile(image, source.thumbnail.toPNG());
+    win.showInactive();
     const lines = await new Promise((resolve, reject) => execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '../scripts/ocr.ps1'), '-ImagePath', image], { windowsHide: true, timeout: 45000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8' }, (error, stdout, stderr) => {
       if (error) return reject(new Error(stderr.trim() || error.message));
       try { resolve(JSON.parse(stdout.replace(/^\uFEFF/, ''))); } catch { reject(new Error('OCR 결과를 읽을 수 없습니다.')); }
@@ -56,9 +60,9 @@ app.whenReady().then(() => {
   win.loadFile(path.join(__dirname, 'index.html'));
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
-  const ok = globalShortcut.register('F7', scan);
+  const ok = globalShortcut.register('F6', scan);
   const toggle = globalShortcut.register('F8', () => win.isVisible() ? win.hide() : win.showInactive());
-  win.webContents.once('did-finish-load', () => send('status', ok && toggle ? 'F7 게임 화면 스캔 · F8 표시/숨기기' : '단축키가 다른 앱에서 사용 중입니다. 스캔 버튼을 이용하세요.'));
+  win.webContents.once('did-finish-load', () => send('status', ok && toggle ? 'F6 전체 화면 스캔 · F8 표시/숨기기' : '단축키가 다른 앱에서 사용 중입니다. 스캔 버튼을 이용하세요.'));
   if (process.argv.includes('--smoke-test')) win.webContents.once('did-finish-load', async () => {
     try {
       const ready = await win.webContents.executeJavaScript("Boolean(window.poe && document.getElementById('scan') && document.getElementById('item'))");

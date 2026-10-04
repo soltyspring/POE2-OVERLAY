@@ -36,12 +36,12 @@ function applyGearPrices(row, result) {
   const prices = result.prices.filter(price => Number.isFinite(price) && price > 0).sort((a, b) => a - b);
   if (!prices.length) { row.status = '환산 가능한 비교 매물 없음'; return row; }
   const candidate = row.kind === 'candidate';
-  row.unitEx = candidate ? prices[0] : prices[Math.floor(prices.length / 2)];
+  row.unitEx = prices[0];
   row.totalEx = row.unitEx * row.count;
-  row.priceKind = candidate ? 'candidate-minimum' : 'unique-median';
+  row.priceKind = candidate ? 'candidate-minimum' : 'unique-minimum';
   row.status = candidate
     ? `같은 베이스의 고유 후보 · 조회 ${prices.length}매물 최저 · 종류·옵션 미확정`
-    : `이름 기준 매물 ${prices.length}개 중앙값 · 옵션 미반영`;
+    : `이름 기준 조회 ${prices.length}매물 최저 · 옵션 미반영`;
   if (result.skippedCurrencies?.length) row.status += ' · 환율 없는 매물 제외';
   return row;
 }

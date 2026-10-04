@@ -44,9 +44,10 @@ test('고유 허리띠 베이스는 종류를 확정하지 않고 고유 전체�
   assert.equal(row.totalEx,2); assert.equal(row.priceKind,'candidate-minimum');
   assert.deepEqual(row.candidates,['A','B']); assert.match(row.status,/종류·옵션 미확정/);
 });
-test('시세가 없으면 고유 후보 가격을 만들지 않으며 확정 고유는 중앙값을 유지한다', () => {
+test('시세가 없으면 가격을 만들지 않으며 옵션 없는 확정 고유도 최저가를 사용한다', () => {
   const unknown = {kind:'candidate',unitEx:null,totalEx:null,count:1};
   applyGearPrices(unknown,{prices:[]}); assert.equal(unknown.totalEx,null);
   const known = {kind:'unique',unitEx:null,totalEx:null,count:1};
-  applyGearPrices(known,{prices:[50,2,12]}); assert.equal(known.totalEx,12);
+  applyGearPrices(known,{prices:[50,2,12]}); assert.equal(known.totalEx,2);
+  assert.equal(known.priceKind,'unique-minimum'); assert.match(known.status,/옵션 미반영/);
 });
