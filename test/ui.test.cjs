@@ -38,7 +38,7 @@ test('검색·확인 필요 필터·변경된 가격·삭제된 아이템을 처
 test('두 캡처 버튼만 제공하고 조회 중 잠근다',async()=>{
   const {dom,events,document}=setup();
   assert.equal(document.getElementById('league'),null);assert.equal(document.getElementById('auto'),null);
-  events.busy(true);assert.equal(document.getElementById('scan').disabled,true);assert.equal(document.getElementById('mouse').disabled,true);
-  events.busy(false);const modes=[];dom.window.poe.scan=async mode=>modes.push(mode);
+  events.busy(true);assert.equal(document.getElementById('activity').classList.contains('loading'),true);assert.equal(document.getElementById('activity').getAttribute('aria-label'),'갱신 중');assert.equal(document.getElementById('meta'),null);assert.equal(document.getElementById('scan').disabled,true);assert.equal(document.getElementById('mouse').disabled,true);
+  events.busy(false);assert.equal(document.getElementById('activity').classList.contains('loading'),false);assert.equal(document.getElementById('activity').getAttribute('aria-label'),'대기 중');const modes=[];dom.window.poe.scan=async mode=>modes.push(mode);
   await document.getElementById('scan').onclick();await document.getElementById('mouse').onclick();assert.deepEqual(modes,['full','mouse']);dom.window.close();
 });

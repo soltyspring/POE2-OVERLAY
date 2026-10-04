@@ -1,6 +1,6 @@
 const el = id => document.getElementById(id);
 const money = value => value.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
-window.poe.onBusy(busy => { for (const id of ['scan', 'mouse', 'item']) el(id).disabled = busy;document.querySelector('.status-bar').classList.toggle('working',busy); });
+window.poe.onBusy(busy => { for (const id of ['scan', 'mouse', 'item']) el(id).disabled = busy;const dot=el('activity');dot.classList.toggle('loading',busy);dot.setAttribute('aria-label',busy?'갱신 중':'대기 중');dot.title=busy?'갱신 중':'대기 중'; });
 window.poe.onStatus(text => { el('status').textContent = text; });
 window.poe.onMetrics(data=>{el('metrics').textContent=`전체 처리 ${data.totalMs}ms · ${data.engine}\n${data.reused?'같은 화면 · OCR 생략':'OCR '+data.ocrMs+'ms'} · OCR 워커 ${data.rssMB}MB\n앱 전체 또는 게임의 자원 사용량은 포함하지 않습니다.`;});
 let currentData=null;
@@ -47,7 +47,6 @@ window.poe.onRows(data => {
   const priced=data.rows.filter(row=>row.totalEx!==null);
   el('found').textContent=data.rows.length;el('priced').textContent=priced.length;
   el('highest').textContent=priced.length?money(Math.max(...priced.map(row=>row.totalEx)))+' 엑잘':'—';
-  el('meta').textContent=`${data.priceSource||'시세'}\n${data.updatedAt?new Date(data.updatedAt).toLocaleString('ko-KR')+' 기준':'시세 조회 실패'}${data.warnings.length?'\n'+data.warnings.join(' / '):''}`;
   renderRows();
 });
 for (const [id,mode] of [['scan','full'],['mouse','mouse']]) el(id).onclick = async () => {try {await window.poe.scan(mode);} catch(error) {el('status').textContent=error.message;}};
