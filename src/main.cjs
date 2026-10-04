@@ -5,18 +5,19 @@ const path = require('node:path');
 const os = require('node:os');
 const { Market } = require('./market.cjs');
 const { scanLines, parseItem, tradeQuery, applyGearPrices } = require('./core.cjs');
+const { WindowState } = require('./window-state.cjs');
 const market = new Market();
-let win, busy = false, league = 'Standard';
-function send(event, value) { if (win && !win.isDestroyed()) win.webContents.send(event, value); }
+let win, windowState, busy = false, league = 'Standard';
+function send(event, value) { if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) win.webContents.send(event, value); }
+function setBusy(value) { busy = value; send('busy', value); }
 async function scan() {
-  if (busy) return;
-  busy = true;
+  if (busy) { send('status', '현재 조회가 끝난 뒤 다시 시도하세요.'); return; }
+  setBusy(true);
+  const scanLeague = league;
   let folder;
   try {
     send('status', '전체 화면 캡처 중…');
     const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-    win.hide();
-    await new Promise(resolve => setTimeout(resolve, 180));
     const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 2400, height: 1350 } });
     const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : null);
     if (!source) throw new Error('마우스가 있는 모니터를 찾을 수 없습니다.');
@@ -24,13 +25,13 @@ async function scan() {
     folder = await fs.mkdtemp(path.join(os.tmpdir(), 'poe2-scan-'));
     const image = path.join(folder, 'capture.png');
     await fs.writeFile(image, source.thumbnail.toPNG());
-    win.showInactive();
+    windowState.show();
     const lines = await new Promise((resolve, reject) => execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '../scripts/ocr.ps1'), '-ImagePath', image], { windowsHide: true, timeout: 45000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8' }, (error, stdout, stderr) => {
       if (error) return reject(new Error(stderr.trim() || error.message));
       try { resolve(JSON.parse(stdout.replace(/^\uFEFF/, ''))); } catch { reject(new Error('OCR 결과를 읽을 수 없습니다.')); }
     }));
     send('status', '한국어 사전·시세 불러오는 중…');
-    const data = await market.load(league);
+    const data = await market.load(scanLeague);
     const rows = scanLines(lines, data.catalog, data.prices);
     const uniques = rows.filter(row => row.kind === 'unique' || (row.kind === 'candidate' && row.type));
     const byName = new Map();
@@ -42,49 +43,76 @@ async function scan() {
         send('status', candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
         let result = byName.get(searchKey);
         if (!result) {
-          result = await market.search(league, tradeQuery({ name: candidate ? null : row.uniqueName, type: row.type, rarity: '고유', filters: [] }), data.prices);
+          result = await market.search(scanLeague, tradeQuery({ name: candidate ? null : row.uniqueName, type: row.type, rarity: '고유', filters: [] }), data.prices);
           byName.set(searchKey, result);
         }
         applyGearPrices(row, result);
       } catch (error) { row.status = error.message; byName.set(searchKey, { prices: [] }); }
     }
     rows.sort((a, b) => (b.totalEx ?? -1) - (a.totalEx ?? -1));
-    send('rows', { rows, updatedAt: data.updatedAt, league, warnings: data.warnings });
-    win.showInactive();
+    send('rows', { rows, updatedAt: data.updatedAt, league: scanLeague, warnings: data.warnings });
+    windowState.show();
     send('status', `스캔 완료 · OCR ${lines.length}줄 · F8 숨기기/표시`);
-  } catch (error) { send('status', error.message); win?.showInactive(); }
-  finally { if (folder) await fs.rm(folder, { recursive: true, force: true }); busy = false; }
+  } catch (error) { send('status', error.message); windowState?.show(); }
+  finally {
+    try { if (folder) await fs.rm(folder, { recursive: true, force: true }); }
+    catch (error) { console.error('Temporary capture cleanup failed:', error.message); }
+    finally { setBusy(false); }
+  }
 }
+if (!app.requestSingleInstanceLock()) { app.quit(); }
+else {
+app.on('second-instance', () => { if (windowState) { windowState.visible = true; windowState.show(); win.focus(); } });
 app.whenReady().then(() => {
-  win = new BrowserWindow({ width: 570, height: 730, alwaysOnTop: true, title: 'PoE2 드랍 시세', backgroundColor: '#111820', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  win = new BrowserWindow({ width: 570, height: 730, minWidth: 450, minHeight: 400, minimizable: false, focusable: true, alwaysOnTop: true, title: 'PoE2 드랍 시세', backgroundColor: '#111820', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  windowState = new WindowState(win);
+  // Windows 10 2004+: exclude our window from capture instead of hiding it on click.
+  win.setContentProtection(true);
+  windowState.pin();
+  win.on('focus', () => windowState.pin());
+  win.on('show', () => windowState.pin());
+  win.on('restore', () => windowState.pin());
+  let rendererRecoveries = 0;
+  win.webContents.on('render-process-gone', (_event, details) => {
+    console.error('Renderer stopped:', details.reason);
+    if (details.reason !== 'clean-exit' && !win.isDestroyed() && rendererRecoveries < 2) {
+      rendererRecoveries++;
+      win.reload();
+    }
+  });
+  win.webContents.on('did-finish-load', () => send('busy', busy));
   win.loadFile(path.join(__dirname, 'index.html'));
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
   const ok = globalShortcut.register('F6', scan);
-  const toggle = globalShortcut.register('F8', () => win.isVisible() ? win.hide() : win.showInactive());
+  const toggle = globalShortcut.register('F8', () => windowState.toggle());
   win.webContents.once('did-finish-load', () => send('status', ok && toggle ? 'F6 전체 화면 스캔 · F8 표시/숨기기' : '단축키가 다른 앱에서 사용 중입니다. 스캔 버튼을 이용하세요.'));
   if (process.argv.includes('--smoke-test')) win.webContents.once('did-finish-load', async () => {
     try {
       const ready = await win.webContents.executeJavaScript("Boolean(window.poe && document.getElementById('scan') && document.getElementById('item'))");
       if (!ready) throw new Error('Renderer/preload not ready');
+      win.setContentProtection(false);
       const image = await win.webContents.capturePage();
       await fs.writeFile(path.join(os.tmpdir(), 'poe2-overlay-ui-smoke.png'), image.toPNG());
       console.log('UI smoke passed: renderer, sandboxed preload, capturePage');
       app.quit();
     } catch (error) { console.error(error); app.exit(1); }
   });
-});
+}).catch(error => { console.error('Startup failed:', error); app.quit(); });
+}
 ipcMain.handle('scan', scan);
 ipcMain.handle('league', (_event, value) => { if (typeof value !== 'string' || !value.trim() || value.length > 100) throw new Error('리그 이름을 입력하세요.'); league = value.trim(); });
 ipcMain.handle('item', async () => {
   if (busy) throw new Error('현재 조회가 끝난 뒤 다시 시도하세요.');
-  busy = true;
+  setBusy(true);
+  const itemLeague = league;
   try {
-    const item = parseItem(clipboard.readText(), await market.stats());
-    const data = await market.load(league);
-    const result = await market.search(league, tradeQuery(item), data.prices);
+    const text = clipboard.readText();
+    const item = parseItem(text, await market.stats());
+    const data = await market.load(itemLeague);
+    const result = await market.search(itemLeague, tradeQuery(item), data.prices);
     return { ...result, item };
-  } finally { busy = false; }
+  } finally { setBusy(false); }
 });
 ipcMain.handle('open', async (_event, url) => {
   const parsed = new URL(url);

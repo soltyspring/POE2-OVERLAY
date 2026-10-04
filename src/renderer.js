@@ -1,5 +1,6 @@
 const el = id => document.getElementById(id);
 const money = value => value.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+window.poe.onBusy(busy => { for (const id of ['scan', 'item', 'league']) el(id).disabled = busy; });
 window.poe.onStatus(text => { el('status').textContent = text; });
 window.poe.onRows(data => {
   el('rows').replaceChildren();
