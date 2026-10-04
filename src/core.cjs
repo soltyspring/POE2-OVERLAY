@@ -33,8 +33,11 @@ function scanLines(lines, catalog, prices) {
   lines=lines.map(line=>{
     const text=line.text.replace(/\s*[（(][A-Za-z][A-Za-z '\u2019-]*[）)]\s*$/,'').trim();
     if(index.has(normalize(quantity(text).name)))return text!==line.text?{...line,text}:line;
-    const corrected=text.replace(/대엘름/g,'대헬름');
+    const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥]+\s*$/,'').trim();
     if(index.has(normalize(quantity(corrected).name)))return {...line,text:corrected};
+    const withoutTier=corrected.replace(/\s*\(\d+등급\)\s*$/,'').trim();
+    const tierEntries=index.get(normalize(withoutTier));
+    if(withoutTier!==corrected && tierEntries?.every(e=>['base','candidate'].includes(e.kind)))return {...line,text:withoutTier};
     // Background effects can be included in the same OCR line. Accept only a
     // long exact dictionary label, obvious OCR punctuation and few stray letters.
     if(!/[;?*`弋“]/.test(corrected))return line;

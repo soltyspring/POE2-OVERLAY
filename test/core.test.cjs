@@ -35,6 +35,12 @@ test('첨부 화면의 실제 Windows OCR 잡음과 대엘름 오독을 제한�
   assert.equal(rows.length,3);assert.deepEqual(new Set(rows.map(r=>r.name)),new Set(['음산한 석궁','감정 주문서','흉악한 대헬름']));
   assert.equal(scanLines([{text:'감정 주문서를 구매하세요',x:0,y:0}],catalog,new Map()).length,0);
 });
+test('전체 화면 장비의 등급 접미사와 한자 잡음을 복구하고 경로석 등급은 유지한다',()=>{
+  const catalog=['호전적인 활','수호자 육척봉','엄숙한 대형 망치'].map(name=>({id:name,name,type:name,kind:'base'}));
+  const rows=scanLines([{text:'호전적인활寸',x:660,y:369},{text:'수호자 육적봉',x:1359,y:587},
+    {text:'엄숙한 대형 망치 (2등급)',x:1152,y:1075}],catalog,new Map());
+  assert.deepEqual(rows.map(r=>r.type),['호전적인 활','수호자 육척봉','엄숙한 대형 망치']);
+});
 test('고유 베이스 후보를 임의로 확정하거나 희귀 이름을 가격화하지 않는다', () => {
   const catalog = [{id:'a',name:'황금 반지',kind:'candidate',uniqueName:'A'},{id:'b',name:'황금 반지',kind:'candidate',uniqueName:'B'}];
   const rows = scanLines([{text:'황금 반지',x:0,y:0},{text:'희귀 반지',x:1,y:1}],catalog,new Map([['a',100]]));

@@ -34,7 +34,9 @@ async function captureImage(mode) {
     const cursor = screen.getCursorScreenPoint();
     const display = screen.getDisplayNearestPoint(cursor);
     const nativeWidth=display.size.width*display.scaleFactor,nativeHeight=display.size.height*display.scaleFactor;
-    const captureScale=Math.min(1,2400/nativeWidth,1350/nativeHeight);
+    // Windows OCR accepts dimensions up to 2600px. Preserve native text sizes
+    // on 1440p monitors instead of reducing every capture to 1350px high.
+    const captureScale=Math.min(1,2600/nativeWidth,2600/nativeHeight);
     const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(nativeWidth*captureScale), height: Math.round(nativeHeight*captureScale) },fetchWindowIcons:false });
 
     const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : null);
