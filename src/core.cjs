@@ -167,7 +167,7 @@ function tradeQuery(item) {
   if (item.unidentified && item.rarity !== '고유') throw new Error('미확인 장비는 옵션 검색할 수 없습니다.');
   if (item.rarity !== '고유' && !item.filters.length) throw new Error('확인된 옵션이 없습니다. 베이스만으로 희귀 장비 가격을 평가하지 않습니다.');
   return { query: { status: { option: 'online' }, ...(item.name ? { name: item.name } : {}), type: item.type,
-    stats: [{ type: 'and', filters: item.filters.map(({ text, ...filter }) => filter) }],
+    stats: [{ type: 'and', filters: item.filters.map(({ text, value, ...filter }) => ({...filter,value:{min:value.min}})) }],
     filters: { type_filters: { filters: { rarity: { option: ({ '고유': 'unique', '희귀': 'rare', '마법': 'magic', '일반': 'normal' })[item.rarity] || 'any' } } } } }, sort: { price: 'asc' } };
 }
 module.exports = { normalize, quantity, scanLines, parseNinja, parseItem, tradeQuery, applyGearPrices };

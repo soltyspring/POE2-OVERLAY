@@ -68,7 +68,7 @@ for (const [id,mode] of [['scan','full'],['mouse','mouse']]) el(id).onclick = as
 function renderSaleResult(data){
   const container=el('detail');container.replaceChildren();
   const title=document.createElement('strong');title.className='sale-title';title.textContent=data.item.name||data.item.type;
-  const summary=document.createElement('p');summary.className='sale-summary';summary.textContent=`옵션 ${data.item.filters.length}개 적용 · 비교 매물 ${data.total.toLocaleString('ko-KR')}개`;
+  const summary=document.createElement('p');summary.className='sale-summary';summary.textContent=`옵션 ${data.item.filters.length}개 · 복사한 수치 이상 · 비교 매물 ${data.total.toLocaleString('ko-KR')}개`;
   const range=document.createElement('div');range.className='sale-range';
   const label=document.createElement('span');label.textContent='조회 매물 가격';
   const price=document.createElement('strong');price.textContent=data.prices.length?`${money(data.prices[0])}${data.prices.length>1?' ~ '+money(data.prices.at(-1)):''} 엑잘`:'조건에 맞는 환산 매물이 없습니다.';

@@ -74,6 +74,7 @@ test('균열 반지의 피해 범위는 평균으로 검색하고 중복 퀄리�
   const query=tradeQuery(item);
   assert.equal(query.query.type,'균열 반지');assert.equal(query.query.stats[0].filters.length,4);
   assert.equal(query.query.stats[0].filters[1].text,undefined);
+  assert.deepEqual(query.query.stats[0].filters.map(f=>f.value),[{min:125},{min:12.5},{min:18},{min:37}]);
 });
 test('변경 불가능 안내문은 유일한 사전 항목에 매칭하며 다른 복수 수치는 제외한다',()=>{
   const item=parseItem(ring,ringStats.filter(s=>s.id!=='implicit.stat_2039822488'));
