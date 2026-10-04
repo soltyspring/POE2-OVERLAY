@@ -10,6 +10,7 @@ const {OcrWorker} = require('./ocr-worker.cjs');
 const {captureRegion} = require('./capture-region.cjs');
 const {readGeometry,saveGeometry}=require('./window-geometry.cjs');
 const {retryRegions,isolateYellow,padBitmap,mergeRetry}=require('./ocr-retry.cjs');
+const {overlayMask,maskBitmap}=require('./capture-mask.cjs');
 const ocr = new OcrWorker();
 const market = new Market({exchangeUrl:process.env.POE_EXCHANGE_URL ?? 'https://poe-exchange.tail37463f.ts.net'});
 let win, windowState, busy = false;
@@ -31,7 +32,7 @@ async function captureImage(mode) {
     const display = screen.getDisplayNearestPoint(cursor);
     const nativeWidth=display.size.width*display.scaleFactor,nativeHeight=display.size.height*display.scaleFactor;
     const captureScale=Math.min(1,2400/nativeWidth,1350/nativeHeight);
-    const sources = await windowState.capture(()=>desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(nativeWidth*captureScale), height: Math.round(nativeHeight*captureScale) },fetchWindowIcons:false }));
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(nativeWidth*captureScale), height: Math.round(nativeHeight*captureScale) },fetchWindowIcons:false });
 
     const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : null);
     if (!source) throw new Error('마우스가 있는 모니터를 찾을 수 없습니다.');
@@ -40,10 +41,14 @@ async function captureImage(mode) {
     const size=thumbnail.getSize();
     const region = captureRegion(mode, cursor, display.bounds, size);
     if (mode === 'mouse') thumbnail=thumbnail.crop(region);
-    const hash=display.id+':'+JSON.stringify(region)+':'+createHash('sha256').update(thumbnail.toBitmap()).digest('hex');
+    const bitmap=thumbnail.toBitmap();
+    const mask=win&&!win.isDestroyed()&&win.isVisible()?overlayMask(win.getBounds(),display.bounds,size,region):null;
+    maskBitmap(bitmap,thumbnail.getSize(),mask);
+    const hash=display.id+':'+JSON.stringify(region)+':'+createHash('sha256').update(bitmap).digest('hex');
     const reused=!!(hash===lastHash && lastOcr);
     let image,folder;
     if (!reused) {
+      if(mask)thumbnail=nativeImage.createFromBitmap(bitmap,thumbnail.getSize());
       folder = await fs.mkdtemp(path.join(os.tmpdir(), 'poe2-scan-'));
       image = path.join(folder, 'capture.png');
       try {await fs.writeFile(image, thumbnail.toPNG());}
@@ -150,7 +155,7 @@ app.whenReady().then(() => {
   win.on('close',()=>{if(!process.argv.includes('--smoke-test'))saveGeometry(geometryFile,win.getNormalBounds());});
   win.setOpacity(0.94);
   windowState = new WindowState(win);
-  // Visible to screen sharing; hide only while desktopCapturer takes the frame.
+  // Visible to screen sharing; mask our rectangle in the OCR image without hiding.
   win.setContentProtection(false);
   windowState.pin();
   win.on('focus', () => windowState.pin());
