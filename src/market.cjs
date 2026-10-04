@@ -1,7 +1,19 @@
 const { parseNinja } = require('./core.cjs');
+const { serverUrl, parseExchange } = require('./exchange.cjs');
 const BASE = 'https://poe.kakaogames.com';
 class Market {
-  constructor() { this.cache = new Map(); this.nextRequest = 0; this.tail = Promise.resolve(); }
+  constructor(options = {}) { this.cache = new Map(); this.nextRequest = 0; this.tail = Promise.resolve(); this.exchangeUrl = serverUrl(options.exchangeUrl ?? process.env.POE_EXCHANGE_URL); this.fetch = options.fetch || fetch; }
+  async loadExchange(league) {
+    const key = `exchange-server:${league}`;
+    const hit = this.cache.get(key);
+    if (hit && Date.now() - hit.time < 60000) return parseExchange(hit.value, league);
+    const response = await this.fetch(`${this.exchangeUrl}/api/markets?league=${encodeURIComponent(league)}`, {signal:AbortSignal.timeout(4000),headers:{Accept:'application/json'}});
+    if (!response.ok) throw new Error(`서버 HTTP ${response.status}`);
+    const payload = await response.json();
+    const result = parseExchange(payload, league);
+    this.cache.set(key,{time:Date.now(),value:payload});
+    return result;
+  }
   request(url, body) {
     const job = this.tail.then(async () => {
       await new Promise(resolve => setTimeout(resolve, Math.max(0, this.nextRequest - Date.now())));
@@ -32,6 +44,11 @@ class Market {
   }
   async load(league) {
     if (typeof league !== 'string' || !league.trim() || league.length > 100) throw new Error('리그 이름을 입력하세요.');
+    let serverData = null, serverError = null;
+    if (this.exchangeUrl) {
+      try { serverData = await this.loadExchange(league); }
+      catch(error) { serverError = `POE2-Exchange 연결/시세 실패: ${error.message} · 기존 시세로 전환`; }
+    }
     const staticData = await this.cached('static', `${BASE}/api/trade2/data/static`, 86400000);
     const items = await this.cached('items', `${BASE}/api/trade2/data/items`, 86400000);
     const catalog = staticData.result.flatMap(group => group.entries.map(e => ({ id: e.id, name: e.text, kind: 'commodity', category: group.id })));
@@ -43,8 +60,14 @@ class Market {
       catalog.push({ id: `${e.name}:${e.type}`, name: e.name, uniqueName: e.name, type: e.type, kind: 'unique' });
       catalog.push({ id: `${e.name}:${e.type}:base`, name: e.type, uniqueName: e.name, type: e.type, kind: 'candidate' });
     }
+    if (serverData) {
+      // Prefer the official localized catalog; append server-only exact names.
+      for (const item of serverData.catalog) if (!catalog.some(existing => existing.name === item.name)) catalog.push(item);
+      return {...serverData,catalog};
+    }
     const categories = ['Currency', 'Fragments', 'Runes', 'Essences', 'Ritual', 'Breach', 'Expedition', 'SoulCores', 'UncutGems'];
     const prices = new Map(), warnings = [];
+    if (serverError) warnings.push(serverError);
     let updatedAt = Infinity;
     for (const category of categories) {
       const key = `${league}:${category}`;
@@ -54,7 +77,7 @@ class Market {
         updatedAt = Math.min(updatedAt, this.cache.get(key).time);
       } catch (error) { warnings.push(`${category}: ${error.message}`); }
     }
-    return { catalog, prices, warnings, updatedAt: Number.isFinite(updatedAt) ? new Date(updatedAt).toISOString() : null };
+    return { catalog, prices, warnings, priceSource:'poe.ninja 직접 조회', updatedAt: Number.isFinite(updatedAt) ? new Date(updatedAt).toISOString() : null };
   }
   async stats() { return (await this.cached('stats', `${BASE}/api/trade2/data/stats`, 86400000)).result.flatMap(g => g.entries); }
   async search(league, query, exchangeRates = new Map([['exalted', 1]])) {

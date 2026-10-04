@@ -4,7 +4,7 @@ window.poe.onBusy(busy => { for (const id of ['scan', 'item', 'league']) el(id).
 window.poe.onStatus(text => { el('status').textContent = text; });
 window.poe.onRows(data => {
   el('rows').replaceChildren();
-  el('meta').textContent = `${data.league} · ${data.rows.length}개 · ${data.updatedAt ? new Date(data.updatedAt).toLocaleString('ko-KR') + ' 조회' : '시세 조회 실패'}${data.warnings.length ? '\n일부 시세 조회 실패: ' + data.warnings.join(' / ') : ''}`;
+  el('meta').textContent = `${data.league} · ${data.rows.length}개 · ${data.priceSource || ''} · ${data.updatedAt ? new Date(data.updatedAt).toLocaleString('ko-KR') + ' 기준' : '시세 조회 실패'}${data.warnings.length ? '\n일부 시세 조회 실패: ' + data.warnings.join(' / ') : ''}`;
   if (!data.rows.length) { const p = document.createElement('p'); p.textContent = '사전과 정확히 일치하는 아이템이 없습니다. 라벨 겹침이나 OCR 오독을 확인하세요.'; el('rows').append(p); }
   for (const row of data.rows) {
     const article = document.createElement('article'); article.className = 'row';

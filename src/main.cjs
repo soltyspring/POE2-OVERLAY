@@ -50,7 +50,7 @@ async function scan() {
       } catch (error) { row.status = error.message; byName.set(searchKey, { prices: [] }); }
     }
     rows.sort((a, b) => (b.totalEx ?? -1) - (a.totalEx ?? -1));
-    send('rows', { rows, updatedAt: data.updatedAt, league: scanLeague, warnings: data.warnings });
+    send('rows', { rows, updatedAt: data.updatedAt, priceSource:data.priceSource, league: scanLeague, warnings: data.warnings });
     windowState.show();
     send('status', `스캔 완료 · OCR ${lines.length}줄 · F8 숨기기/표시`);
   } catch (error) { send('status', error.message); windowState?.show(); }
