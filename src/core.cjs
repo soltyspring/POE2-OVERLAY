@@ -114,7 +114,7 @@ function parseNinja(data) {
 
 function parseItem(text, statEntries) {
   if(typeof text!=='string'||!text.trim())throw new Error('복사된 아이템 정보가 없습니다. 인벤토리·보관함의 아이템 위에 마우스를 올리고 Ctrl+C로 복사하세요. 안 되면 Ctrl+Alt+C도 시도하세요.');
-  const sections = text.replace(/\r/g, '').trim().split(/\n-{4,}\n/);
+  const sections = text.replace(/\r/g, '').split('\n').map(line=>line.trim()).join('\n').trim().split(/\n-{4,}\n/);
   const header = sections[0].split('\n');
   const index = header.findIndex(line => /^아이템 희귀도:/.test(line));
   if (index < 0 || !header[index + 1]) throw new Error('게임에서 Ctrl+C로 복사한 한국어 아이템 정보가 필요합니다.');
@@ -122,17 +122,24 @@ function parseItem(text, statEntries) {
   const names = header.slice(index + 1).filter(Boolean);
   const unidentified = sections.some(section => section.split('\n').includes('미확인'));
   const filters = [], unmatched = [];
-  if (!unidentified) for (const section of sections.slice(1)) for (const raw of section.split('\n')) {
+  if (!unidentified) for (const section of sections.slice(1)) {
+    let context='explicit';
+    for (const raw of section.split('\n')) {
+    if(/^\{.*\}$/.test(raw)){
+      context=/고정 속성/.test(raw)?'implicit':/접두어|접미어/.test(raw)?'explicit':/제작/.test(raw)?'crafted':/인챈트/.test(raw)?'enchant':/룬/.test(raw)?'rune':null;
+      continue;
+    }
     const marker = raw.match(/\s*\((implicit|enchant|fractured|crafted|rune|desecrated|명시|암시|인챈트)\)\s*$/);
-    const group = ({ '명시': 'explicit', '암시': 'implicit', '인챈트': 'enchant' })[marker?.[1]] || marker?.[1] || 'explicit';
-    const line = marker ? raw.slice(0, marker.index).trim() : raw.trim();
+    const group = ({ '명시': 'explicit', '암시': 'implicit', '인챈트': 'enchant' })[marker?.[1]] || marker?.[1] || context;
+    const line = (marker ? raw.slice(0, marker.index).trim() : raw.trim()).replace(/(?<=\d)\(\s*[+-]?\d+(?:\.\d+)?\s*[-–~]\s*[+-]?\d+(?:\.\d+)?\s*\)/g,'');
     if (!line || line.includes(':') || !/[\d]/.test(line)) continue;
     const template = line.replace(/[+-]?\d+(?:\.\d+)?/g, '#');
-    const matches = statEntries.filter(stat => stat.id.startsWith(group + '.') && normalize(stat.text.replace(/\+#/g, '#')) === normalize(template));
+    const matches = group?statEntries.filter(stat => stat.id.startsWith(group + '.') && normalize(stat.text.replace(/\+#/g, '#')) === normalize(template)):[];
     const values = (line.match(/[+-]?\d+(?:\.\d+)?/g) || []).map(Number);
     if (matches.length === 1 && values.length === 1) {
       filters.push({ id: matches[0].id, value: { min: values[0], max: values[0] }, disabled: false, text: raw });
     } else unmatched.push(raw);
+    }
   }
   return { rarity, name: rarity === '고유' ? names[0] : null, type: names.at(-1), unidentified, filters, unmatched };
 }
