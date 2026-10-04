@@ -32,7 +32,22 @@ function scanLines(lines, catalog, prices) {
   // label resolves exactly, leaving tiers, levels and unknown suffixes intact.
   lines=lines.map(line=>{
     const text=line.text.replace(/\s*[（(][A-Za-z][A-Za-z '\u2019-]*[）)]\s*$/,'').trim();
-    return text!==line.text && index.has(normalize(quantity(text).name))?{...line,text}:line;
+    if(index.has(normalize(quantity(text).name)))return text!==line.text?{...line,text}:line;
+    const corrected=text.replace(/대엘름/g,'대헬름');
+    if(index.has(normalize(quantity(corrected).name)))return {...line,text:corrected};
+    // Background effects can be included in the same OCR line. Accept only a
+    // long exact dictionary label, obvious OCR punctuation and few stray letters.
+    if(!/[;?*`弋“]/.test(corrected))return line;
+    const cleaned=normalize(corrected),candidates=[];
+    for(const [key,entries] of index){
+      if(key.length<5 || !/^[가-힣]+$/.test(key) || !entries.every(e=>['commodity','base','candidate'].includes(e.kind)))continue;
+      const at=cleaned.indexOf(key);if(at<0)continue;
+      const remainder=cleaned.slice(0,at)+cleaned.slice(at+key.length);
+      if((remainder.match(/[가-힣]/g)||[]).length<=4)candidates.push({key,name:entries[0].name});
+    }
+    candidates.sort((a,b)=>b.key.length-a.key.length);
+    if(candidates.length && (candidates.length===1||candidates[0].key.length>candidates[1].key.length))return {...line,text:candidates[0].name};
+    return line;
   });
   const byText=new Map(),paired=new Map(),consumed=new Set();
   for(const line of lines){const text=normalize(quantity(line.text).name);if(!byText.has(text))byText.set(text,[]);byText.get(text).push(line);}

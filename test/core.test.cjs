@@ -25,6 +25,16 @@ test('한국어 아이템 뒤의 영어 이름은 사전에 일치할 때만 제
   assert.equal(rows[1].tier,15);
   assert.equal(tradeQuery({type:rows[0].type,rarity:'고유',filters:[]}).query.type,'황금 호신부');
 });
+test('첨부 화면의 실제 Windows OCR 잡음과 대엘름 오독을 제한적으로 복구한다',()=>{
+  const catalog=[{id:'bow',name:'음산한 석궁',type:'음산한 석궁',kind:'base'},
+    {id:'wisdom',name:'감정 주문서',kind:'commodity'},
+    {id:'helm',name:'흉악한 대헬름',type:'흉악한 대헬름',kind:'candidate'}];
+  const rows=scanLines([{text:'1 는님음산한석궁* 특` ~고',x:370,y:60},
+    {text:'감정 주문서 1; ,- ? 가~弋“',x:441,y:94},
+    {text:'흉악한 대엘름',x:149,y:316}],catalog,new Map([['wisdom',0.01]]));
+  assert.equal(rows.length,3);assert.deepEqual(new Set(rows.map(r=>r.name)),new Set(['음산한 석궁','감정 주문서','흉악한 대헬름']));
+  assert.equal(scanLines([{text:'감정 주문서를 구매하세요',x:0,y:0}],catalog,new Map()).length,0);
+});
 test('고유 베이스 후보를 임의로 확정하거나 희귀 이름을 가격화하지 않는다', () => {
   const catalog = [{id:'a',name:'황금 반지',kind:'candidate',uniqueName:'A'},{id:'b',name:'황금 반지',kind:'candidate',uniqueName:'B'}];
   const rows = scanLines([{text:'황금 반지',x:0,y:0},{text:'희귀 반지',x:1,y:1}],catalog,new Map([['a',100]]));
