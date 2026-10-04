@@ -5,6 +5,7 @@ function catalogIndex(catalog) {
   const index = new Map();
   for (const item of catalog) {
     const name=normalize(item.name);
+    if(!name)continue;
     if (!index.has(name)) index.set(name,[]);
     index.get(name).push(item);
   }
@@ -31,9 +32,9 @@ function scanLines(lines, catalog, prices) {
   // Some labels append an English translation. Strip it only when the Korean
   // label resolves exactly, leaving tiers, levels and unknown suffixes intact.
   lines=lines.map(line=>{
-    const text=line.text.replace(/\s*[（(][A-Za-z][A-Za-z '\u2019-]*[）)]\s*$/,'').trim();
+    const text=line.text.replace(/\s*[（(][A-Za-z][A-Za-z0-9 '\u2019-]*[）)]\s*$/,'').trim();
     if(index.has(normalize(quantity(text).name)))return text!==line.text?{...line,text}:line;
-    const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥•·]+\s*$/,'').trim();
+    const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥•·]+\s*$/,'').replace(/^[-•]+\s*/,'').trim();
     if(index.has(normalize(quantity(corrected).name)))return {...line,text:corrected};
     const noLeadingNoise=corrected.replace(/^[\d\s•/.,]+/,'').trim();
     if(noLeadingNoise && !quantity(corrected).explicit && index.has(normalize(noLeadingNoise)))return {...line,text:noLeadingNoise};
@@ -93,7 +94,8 @@ function scanLines(lines, catalog, prices) {
     const lookupName = gem ? gem[3].trim() : q.name;
     if (!Number.isSafeInteger(q.count) || q.count < 1) continue;
     const pairedType=paired.get(line);
-    const matches = (index.get(normalize(lookupName)) || []).filter(item => pairedType ? item.kind==='unique'&&item.type===pairedType : gem ? item.kind === 'gem' : item.kind !== 'gem');
+    let matches = (index.get(normalize(lookupName)) || []).filter(item => pairedType ? item.kind==='unique'&&item.type===pairedType : gem ? item.kind === 'gem' : item.kind !== 'gem');
+    if(matches.some(item=>item.kind==='waystone'))matches=matches.filter(item=>item.kind==='waystone');
     if (!matches.length) continue;
     const key = `${normalize(q.name)}:${Math.round(line.x)}:${Math.round(line.y)}`;
     if (seen.has(key)) continue;

@@ -62,13 +62,13 @@ async function captureImage(mode) {
         await fs.writeFile(originalImage,encodeBitmap(bitmap,thumbnail.getSize()));
         const captureSize=thumbnail.getSize();
         const useRegions=mode==='full'&&captureSize.width>=1200&&captureSize.height>=700;
-        const labelBitmap=useRegions?isolateLabels(bitmap):bitmap;
+        const labelBitmap=useRegions?isolateLabels(bitmap,captureSize):bitmap;
         // F7 and small captures already contain little background; packing can
         // hurt line segmentation there and offers little processing benefit.
         const regions=useRegions?labelRegions(bitmap,captureSize):[];
         // Joined tall regions often contain effects crossing multiple labels.
         // Preserve the full-frame path rather than silently dropping a label.
-        const packed=useRegions&&regions.every(r=>r.height<=80)
+        const packed=process.env.POE_OCR_PACKED==='1'&&useRegions&&regions.every(r=>r.height<=80)
           ?packLabels(labelBitmap,captureSize,regions):null;
         placements=packed?.placements||null;ocrSize=packed?{width:packed.width,height:packed.height}:thumbnail.getSize();
         await fs.writeFile(image,encodeBitmap(packed?.buffer||labelBitmap,ocrSize));
@@ -102,7 +102,7 @@ async function scan(mode = 'full') {
       if(!scanLines(recognized.lines,catalog,new Map()).length){
         const original=nativeImage.createFromPath(originalImage),fullSize=original.getSize();
         const fallbackFile=path.join(folder,'fallback.bmp');
-        await fs.writeFile(fallbackFile,encodeBitmap(isolateLabels(original.toBitmap()),fullSize));
+        await fs.writeFile(fallbackFile,encodeBitmap(original.toBitmap(),fullSize));
         const fallback=await ocr.recognize(fallbackFile);
         fallback.metrics.ocrMs+=recognized.metrics.ocrMs;
         fallback.metrics.cpuMs+=recognized.metrics.cpuMs;
@@ -115,7 +115,7 @@ async function scan(mode = 'full') {
       let retryMs=0;
       for(let i=0;i<regions.length;i++){
         const region=regions[i],crop=bitmap.crop(region),size=crop.getSize();
-        const padded=padBitmap(isolateYellow(crop.toBitmap()),size);
+        const padded=padBitmap(isolateYellow(crop.toBitmap(),size),size);
         const enhanced=nativeImage.createFromBitmap(padded.buffer,{width:padded.width,height:padded.height}).resize({width:padded.width*2,height:padded.height*2,quality:'best'});
         const retryFile=path.join(folder,`retry-${i}.png`);
         try{

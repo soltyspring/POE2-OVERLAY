@@ -128,7 +128,7 @@ class Market {
       catalog.push({ id: `${e.name}:${e.type}:base`, name: e.type, uniqueName: e.name, type: e.type, kind: 'candidate' });
     }
     const knownBases=new Set(catalog.filter(e=>e.kind==='candidate').map(e=>e.type));
-    for(const group of items.result)if(['accessory','armour','weapon'].includes(group.id))for(const e of group.entries){
+    for(const group of items.result)if(['accessory','armour','weapon','flask'].includes(group.id))for(const e of group.entries){
       if(e.type&&!e.name&&!knownBases.has(e.type)){catalog.push({id:`base:${e.type}`,name:e.type,type:e.type,kind:'base'});knownBases.add(e.type);}
     }
     this.catalog = catalog; this.catalogStatic=staticData;this.catalogItems=items;

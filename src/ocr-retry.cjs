@@ -3,7 +3,7 @@ function retryRegions(lines,catalog,size){
   const bases=new Set(catalog.filter(e=>['candidate','base'].includes(e.kind)).map(e=>normalize(e.name)));
   const regions=[];
   for(const base of lines){
-    if(!bases.has(normalize(base.text)))continue;
+    if(!bases.has(normalize(base.text.replace(/^[-•]+\s*/,''))))continue;
     const above=lines.filter(line=>base.y-line.y>=8&&base.y-line.y<=60&&Math.abs(base.x-line.x)<=80&&/[A-Za-z“”—_]/.test(line.text)).sort((a,b)=>b.y-a.y)[0];
     if(!above)continue;
     const x=Math.max(0,Math.floor(Math.min(base.x,above.x)-12)),y=Math.max(0,Math.floor(above.y-10));
@@ -15,10 +15,14 @@ function retryRegions(lines,catalog,size){
   }
   return regions;
 }
-function isolateYellow(bitmap){
+function isolateYellow(bitmap,size){
   // nativeImage.toBitmap() is BGRA on Windows. Use a separate bounded buffer.
   const result=Buffer.alloc(bitmap.length,255);
   for(let i=0;i<bitmap.length;i+=4)if(bitmap[i+2]>180&&bitmap[i+1]>144&&bitmap[i]<bitmap[i+1]*.8){result[i]=0;result[i+1]=0;result[i+2]=0;}
+  if(size)for(let x=0;x<size.width;x++){
+    let ink=0;for(let y=0;y<size.height;y++)if(result[(y*size.width+x)*4]===0)ink++;
+    if(ink>size.height*.65)for(let y=0;y<size.height;y++){const i=(y*size.width+x)*4;result[i]=result[i+1]=result[i+2]=255;}
+  }
   return result;
 }
 function padBitmap(bitmap,size,padding=40){

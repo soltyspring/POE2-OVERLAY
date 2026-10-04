@@ -25,6 +25,18 @@ test('한국어 아이템 뒤의 영어 이름은 사전에 일치할 때만 제
   assert.equal(rows[1].tier,15);
   assert.equal(tradeQuery({type:rows[0].type,rarity:'고유',filters:[]}).query.type,'황금 호신부');
 });
+test('실제 G01den 오독과 빈 사전 항목을 처리한다',()=>{
+  const catalog=[{id:'empty',name:'',kind:'candidate'},{id:'charm',name:'황금 호신부',type:'황금 호신부',kind:'base'}];
+  const rows=scanLines([{text:'황금 호신부 (G01den Charm)',x:74,y:12},{text:'',x:3,y:4}],catalog,new Map());
+  assert.equal(rows.length,1);assert.equal(rows[0].name,'황금 호신부');
+});
+test('화폐 사전에도 있는 경로석은 등급 검색 항목을 우선한다',()=>{
+  const rows=scanLines([{text:'경로석 (15등급)',x:1,y:2}],[
+    {id:'static-map',name:'경로석 (15등급)',kind:'commodity'},
+    {id:'tier-map',name:'경로석 (15등급)',type:'경로석 (15등급)',kind:'waystone',tier:15}
+  ],new Map());
+  assert.equal(rows[0].kind,'waystone');assert.equal(rows[0].tier,15);
+});
 test('첨부 화면의 실제 Windows OCR 잡음과 대엘름 오독을 제한적으로 복구한다',()=>{
   const catalog=[{id:'bow',name:'음산한 석궁',type:'음산한 석궁',kind:'base'},
     {id:'wisdom',name:'감정 주문서',kind:'commodity'},
