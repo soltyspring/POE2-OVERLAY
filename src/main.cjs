@@ -23,6 +23,31 @@ function publishRows(rows,data) {
   const signature=JSON.stringify(payload);
   if(signature!==lastRowsSignature){lastRowsSignature=signature;send('rows',payload);}
 }
+async function captureImage(mode) {
+    const cursor = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursor);
+    const nativeWidth=display.size.width*display.scaleFactor,nativeHeight=display.size.height*display.scaleFactor;
+    const captureScale=Math.min(1,2400/nativeWidth,1350/nativeHeight);
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(nativeWidth*captureScale), height: Math.round(nativeHeight*captureScale) },fetchWindowIcons:false });
+
+    const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : null);
+    if (!source) throw new Error('마우스가 있는 모니터를 찾을 수 없습니다.');
+    if (source.thumbnail.isEmpty()) throw new Error('전체 화면을 캡처할 수 없습니다.');
+    let thumbnail=source.thumbnail;
+    const size=thumbnail.getSize();
+    const region = captureRegion(mode, cursor, display.bounds, size);
+    if (mode === 'mouse') thumbnail=thumbnail.crop(region);
+    const hash=display.id+':'+JSON.stringify(region)+':'+createHash('sha256').update(thumbnail.toBitmap()).digest('hex');
+    const reused=!!(hash===lastHash && lastOcr);
+    let image,folder;
+    if (!reused) {
+      folder = await fs.mkdtemp(path.join(os.tmpdir(), 'poe2-scan-'));
+      image = path.join(folder, 'capture.png');
+      try {await fs.writeFile(image, thumbnail.toPNG());}
+      catch(error){await fs.rm(folder,{recursive:true,force:true});throw error;}
+    }
+    return {hash,reused,image,folder,region};
+}
 async function scan(mode = 'full') {
   if (busy) { send('status', '현재 조회가 끝난 뒤 다시 시도하세요.'); return; }
   setBusy(true);
@@ -32,27 +57,9 @@ async function scan(mode = 'full') {
   let folder;
   try {
     send('status', mode === 'mouse' ? '마우스 주변 캡처 중…' : '전체 화면 캡처 중…');
-    const cursor = screen.getCursorScreenPoint();
-    const display = screen.getDisplayNearestPoint(cursor);
-    const nativeWidth=display.size.width*display.scaleFactor,nativeHeight=display.size.height*display.scaleFactor;
-    const captureScale=Math.min(1,2400/nativeWidth,1350/nativeHeight);
-    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(nativeWidth*captureScale), height: Math.round(nativeHeight*captureScale) },fetchWindowIcons:false });
+    const captured=await captureImage(mode);
+    const {hash,reused,image,region}=captured;folder=captured.folder;
     const captureMs=Date.now()-started;
-    const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : null);
-    if (!source) throw new Error('마우스가 있는 모니터를 찾을 수 없습니다.');
-    if (source.thumbnail.isEmpty()) throw new Error('전체 화면을 캡처할 수 없습니다.');
-    let thumbnail=source.thumbnail;
-    const size=thumbnail.getSize();
-    const region = captureRegion(mode, cursor, display.bounds, size);
-    if (mode === 'mouse') thumbnail=thumbnail.crop(region);
-    const hash=display.id+':'+JSON.stringify(region)+':'+createHash('sha256').update(thumbnail.toBitmap()).digest('hex');
-    const reused=hash===lastHash && lastOcr;
-    let image;
-    if (!reused) {
-      folder = await fs.mkdtemp(path.join(os.tmpdir(), 'poe2-scan-'));
-      image = path.join(folder, 'capture.png');
-      await fs.writeFile(image, thumbnail.toPNG());
-    }
     windowState.show();
     send('status', '아이템 이름 인식·시세 불러오는 중…');
     const ocrStarted=Date.now();

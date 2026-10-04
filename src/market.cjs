@@ -1,6 +1,11 @@
 const { parseNinja } = require('./core.cjs');
 const { serverUrl, parseExchange } = require('./exchange.cjs');
+const {BoundedCache} = require('./bounded-cache.cjs');
 const BASE = 'https://poe.kakaogames.com';
+function compactDictionary(key,value) {
+  if(!['static','items','stats'].includes(key))return value;
+  return {result:value.result.map(group=>({id:group.id,entries:group.entries.map(entry=>key==='items'?{name:entry.name,type:entry.type}:{id:entry.id,text:entry.text})}))};
+}
 class Market {
   async loadQuick(league) {
     this.snapshots ??= new Map(); this.loads ??= new Map();
@@ -16,16 +21,16 @@ class Market {
     if(usable){pending.catch(error=>console.error('Background price refresh:',error.message));return hit.value;}
     return pending;
   }
-  constructor(options = {}) { this.cache = new Map(); this.nextRequest = 0; this.tail = Promise.resolve(); this.exchangeUrl = serverUrl(options.exchangeUrl ?? process.env.POE_EXCHANGE_URL); this.fetch = options.fetch || fetch; }
+  constructor(options = {}) { this.cache = new BoundedCache(); this.nextRequest = 0; this.tail = Promise.resolve(); this.exchangeUrl = serverUrl(options.exchangeUrl ?? process.env.POE_EXCHANGE_URL); this.fetch = options.fetch || fetch; }
   async loadExchange(league) {
     const key = `exchange-server:${league}`;
     const hit = this.cache.get(key);
-    if (hit && Date.now() - hit.time < 60000) return parseExchange(hit.value, league);
+    if (hit && Date.now()-Date.parse(hit.value.updatedAt)<1800000) return hit.value;
     const response = await this.fetch(`${this.exchangeUrl}/api/markets?league=${encodeURIComponent(league)}`, {signal:AbortSignal.timeout(4000),headers:{Accept:'application/json'}});
     if (!response.ok) throw new Error(`서버 HTTP ${response.status}`);
     const payload = await response.json();
     const result = parseExchange(payload, league);
-    this.cache.set(key,{time:Date.now(),value:payload});
+    this.cache.set(key,{time:Date.now(),value:result});
     return result;
   }
   request(url, body) {
@@ -54,7 +59,7 @@ class Market {
     if (hit && Date.now() - hit.time < ttl) return hit.value;
     this.pendingRequests ??= new Map();
     if(this.pendingRequests.has(key))return this.pendingRequests.get(key);
-    const pending=this.request(url).then(value=>{this.cache.set(key,{time:Date.now(),value});return value;}).finally(()=>this.pendingRequests.delete(key));
+    const pending=this.request(url).then(raw=>{const value=compactDictionary(key,raw);this.cache.set(key,{time:Date.now(),value});return value;}).finally(()=>this.pendingRequests.delete(key));
     this.pendingRequests.set(key,pending);
     return pending;
   }
