@@ -2,6 +2,20 @@ const { parseNinja } = require('./core.cjs');
 const { serverUrl, parseExchange } = require('./exchange.cjs');
 const BASE = 'https://poe.kakaogames.com';
 class Market {
+  async loadQuick(league) {
+    this.snapshots ??= new Map(); this.loads ??= new Map();
+    const hit=this.snapshots.get(league);
+    const fresh=hit && Date.now()-hit.time<60000;
+    const usable=hit && Number.isFinite(Date.parse(hit.value.updatedAt)) && Date.now()-Date.parse(hit.value.updatedAt)<1800000;
+    if(fresh)return hit.value;
+    let pending=this.loads.get(league);
+    if(!pending){
+      pending=this.load(league).then(value=>{this.snapshots.set(league,{time:Date.now(),value});return value;}).finally(()=>this.loads.delete(league));
+      this.loads.set(league,pending);
+    }
+    if(usable){pending.catch(error=>console.error('Background price refresh:',error.message));return hit.value;}
+    return pending;
+  }
   constructor(options = {}) { this.cache = new Map(); this.nextRequest = 0; this.tail = Promise.resolve(); this.exchangeUrl = serverUrl(options.exchangeUrl ?? process.env.POE_EXCHANGE_URL); this.fetch = options.fetch || fetch; }
   async loadExchange(league) {
     const key = `exchange-server:${league}`;

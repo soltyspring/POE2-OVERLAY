@@ -27,7 +27,10 @@ async function scan(mode = 'full') {
     send('status', mode === 'mouse' ? '마우스 주변 캡처 중…' : '전체 화면 캡처 중…');
     const cursor = screen.getCursorScreenPoint();
     const display = screen.getDisplayNearestPoint(cursor);
-    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 2400, height: 1350 } });
+    const nativeWidth=display.size.width*display.scaleFactor,nativeHeight=display.size.height*display.scaleFactor;
+    const captureScale=Math.min(1,2400/nativeWidth,1350/nativeHeight);
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(nativeWidth*captureScale), height: Math.round(nativeHeight*captureScale) },fetchWindowIcons:false });
+    const captureMs=Date.now()-started;
     const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : null);
     if (!source) throw new Error('마우스가 있는 모니터를 찾을 수 없습니다.');
     if (source.thumbnail.isEmpty()) throw new Error('전체 화면을 캡처할 수 없습니다.');
@@ -44,7 +47,10 @@ async function scan(mode = 'full') {
       await fs.writeFile(image, thumbnail.toPNG());
     }
     windowState.show();
-    const [recognized,data]=await Promise.all([reused ? Promise.resolve(lastOcr) : ocr.recognize(image),market.load(scanLeague)]);
+    send('status', '아이템 이름 인식·시세 불러오는 중…');
+    const ocrStarted=Date.now();
+    const [recognized,data]=await Promise.all([reused ? Promise.resolve(lastOcr) : ocr.recognize(image),market.loadQuick(scanLeague)]);
+    const recognizeAndPriceMs=Date.now()-ocrStarted;
     lastHash=hash;lastOcr=recognized;
     const lines=recognized.lines.map(line=>({...line,x:line.x+region.x,y:line.y+region.y}));
     const rows = scanLines(lines, data.catalog, data.prices);
@@ -56,6 +62,7 @@ async function scan(mode = 'full') {
       if(signature!==lastRowsSignature){lastRowsSignature=signature;send('rows',payload);}
     };
     emit();
+    const firstResultMs=Date.now()-started;
     const uniques = rows.filter(row => row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
     const byName = new Map();
     for (const row of uniques) {
@@ -77,7 +84,7 @@ async function scan(mode = 'full') {
     rows.sort((a, b) => (b.totalEx ?? -1) - (a.totalEx ?? -1));
     emit();
     windowState.show();
-    send('metrics',{...recognized.metrics,reused:!!reused,totalMs:Date.now()-started});
+    send('metrics',{...recognized.metrics,reused:!!reused,captureMs,recognizeAndPriceMs,firstResultMs,totalMs:Date.now()-started});
     send('status', `갱신 완료 · ${Date.now()-started}ms${reused?' · 같은 화면, 인식 재사용':''}`);
   } catch (error) { send('status', error.message); windowState?.show(); }
   finally {
@@ -109,6 +116,8 @@ app.whenReady().then(() => {
   });
   win.webContents.on('did-finish-load', () => {lastRowsSignature=null;send('busy', busy);});
   win.loadFile(path.join(__dirname, 'index.html'));
+  // Warm dictionaries and prices before the first hotkey without capturing the screen.
+  if(!process.argv.includes('--smoke-test'))market.loadQuick(league).catch(error=>console.error('Price preload:',error.message));
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
   const full = globalShortcut.register('F6', () => scan('full'));

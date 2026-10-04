@@ -10,6 +10,21 @@ function snapshot(league='Standard') {
     {league,id:'exchange:Currency:greater-chaos-orb',name:'상위 카오스 오브',price_divine:.2,observed_at}
   ]};
 }
+test('빠른 조회는 동시 요청을 공유하고 유효한 시세를 먼저 반환하며 뒤에서 갱신한다',async()=>{
+  const market=new Market();let calls=0,finish;
+  const first={updatedAt:new Date().toISOString(),prices:new Map([['exalted',1]])};
+  market.load=async()=>{calls++;return first;};
+  const results=await Promise.all([market.loadQuick('Standard'),market.loadQuick('Standard')]);
+  assert.equal(calls,1);assert.equal(results[0],first);
+  market.snapshots.get('Standard').time-=61000;
+  market.load=()=>{calls++;return new Promise(resolve=>finish=resolve);};
+  assert.equal(await market.loadQuick('Standard'),first);assert.equal(await market.loadQuick('Standard'),first);assert.equal(calls,2);
+  const updated={...first,prices:new Map([['exalted',2]])};finish(updated);await market.loads.get('Standard');
+  assert.equal(await market.loadQuick('Standard'),updated);
+  market.snapshots.set('Standard',{time:0,value:{...first,updatedAt:new Date(Date.now()-1800001).toISOString()}});
+  market.load=async()=>updated;
+  assert.equal(await market.loadQuick('Standard'),updated);
+});
 test('DB 스냅샷을 엑잘로 환산하고 다른 리그·오래된 가격을 제외한다',()=>{
   const data=snapshot();
   data.markets.push({...data.markets[2],id:'exchange:Currency:old',observed_at:1});
