@@ -8,6 +8,7 @@ const { scanLines, parseItem, tradeQuery, applyGearPrices } = require('./core.cj
 const { WindowState } = require('./window-state.cjs');
 const {OcrWorker} = require('./ocr-worker.cjs');
 const {captureRegion} = require('./capture-region.cjs');
+const {readGeometry,saveGeometry}=require('./window-geometry.cjs');
 const ocr = new OcrWorker();
 const market = new Market({exchangeUrl:process.env.POE_EXCHANGE_URL ?? 'https://poe-exchange.tail37463f.ts.net'});
 let win, windowState, busy = false;
@@ -125,7 +126,10 @@ else {
 app.on('second-instance', () => { if (windowState) { windowState.visible = true; windowState.show(); win.focus(); } });
 app.whenReady().then(() => {
   market.cacheDirectory=path.join(app.getPath('userData'),'dictionary-cache');
-  win = new BrowserWindow({ width: 530, height: 760, minWidth: 450, minHeight: 400, show:!process.argv.includes('--smoke-test'), minimizable: false, focusable: true, alwaysOnTop: true, title: 'PoE2 드랍 시세', backgroundColor: '#111820', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  const geometryFile=path.join(app.getPath('userData'),'window-geometry.json');
+  const geometry=readGeometry(geometryFile,screen.getAllDisplays().map(display=>display.workArea));
+  win = new BrowserWindow({ ...geometry, minWidth: Math.min(450,geometry.width), minHeight: Math.min(400,geometry.height), show:!process.argv.includes('--smoke-test'), minimizable: false, focusable: true, alwaysOnTop: true, title: 'PoE2 드랍 시세', backgroundColor: '#111820', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  win.on('close',()=>{if(!process.argv.includes('--smoke-test'))saveGeometry(geometryFile,win.getNormalBounds());});
   win.setOpacity(0.94);
   windowState = new WindowState(win);
   // Windows 10 2004+: exclude our window from capture instead of hiding it on click.
