@@ -3,7 +3,7 @@ const {createInterface} = require('node:readline');
 const fs = require('node:fs');
 const path = require('node:path');
 class OcrWorker {
-  constructor() { this.child=null; this.pending=null; this.lastError=''; }
+  constructor() { this.child=null; this.pending=null; this.lastError='';this.idleTimer=null; }
   start() {
     if (this.child) return;
     const python=process.env.POE_OCR_PYTHON || path.join(__dirname,'../.ocr-venv/Scripts/python.exe');
@@ -20,6 +20,8 @@ class OcrWorker {
         const response=JSON.parse(line.replace(/^\uFEFF/,''));
         const pending=this.pending; this.pending=null; clearTimeout(pending.timer);
         if (response.error) pending.reject(new Error(response.error)); else pending.resolve(response);
+        this.idleTimer=setTimeout(()=>{if(!this.pending)this.stop();},60000);
+        this.idleTimer.unref();
       } catch(error) { this.fail(error); }
     });
     child.on('error',error=>this.fail(error));
@@ -29,6 +31,7 @@ class OcrWorker {
   fail(error) { if(this.pending) {const pending=this.pending;this.pending=null;clearTimeout(pending.timer);pending.reject(error);} }
   async recognize(image) {
     if (this.pending) throw new Error('OCR 중복 요청');
+    clearTimeout(this.idleTimer);
     this.start();
     return new Promise((resolve,reject)=>{
       const timer=setTimeout(()=>{this.fail(new Error('OCR 시간 초과'));this.stop();},90000);
@@ -36,6 +39,6 @@ class OcrWorker {
       this.child.stdin.write(JSON.stringify({path:image})+'\n');
     });
   }
-  stop() { const child=this.child;this.child=null;this.fail(new Error('OCR 중지'));child?.kill(); }
+  stop() { clearTimeout(this.idleTimer);const child=this.child;this.child=null;this.fail(new Error('OCR 중지'));child?.kill(); }
 }
 module.exports={OcrWorker};

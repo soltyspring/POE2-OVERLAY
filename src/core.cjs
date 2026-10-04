@@ -1,4 +1,16 @@
 const normalize = value => value.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
+const catalogIndexes = new WeakMap();
+function catalogIndex(catalog) {
+  if (catalogIndexes.has(catalog)) return catalogIndexes.get(catalog);
+  const index = new Map();
+  for (const item of catalog) {
+    const name=normalize(item.name);
+    if (!index.has(name)) index.set(name,[]);
+    index.get(name).push(item);
+  }
+  catalogIndexes.set(catalog,index);
+  return index;
+}
 
 function quantity(text) {
   // Windows OCR reads this reward menu's 1x as lx or 1)(.
@@ -15,12 +27,13 @@ function quantity(text) {
 function scanLines(lines, catalog, prices) {
   const rows = [];
   const seen = new Set();
+  const index = catalogIndex(catalog);
   for (const line of lines) {
     const q = quantity(line.text);
     const gem = q.name.match(/^(스킬|보조)(?:\s*레벨\s*(\d+))?\s*:\s*(.+)$/);
     const lookupName = gem ? gem[3].trim() : q.name;
     if (!Number.isSafeInteger(q.count) || q.count < 1) continue;
-    const matches = catalog.filter(item => normalize(item.name) === normalize(lookupName) && (gem ? item.kind === 'gem' : item.kind !== 'gem'));
+    const matches = (index.get(normalize(lookupName)) || []).filter(item => gem ? item.kind === 'gem' : item.kind !== 'gem');
     if (!matches.length) continue;
     const key = `${normalize(q.name)}:${Math.round(line.x)}:${Math.round(line.y)}`;
     if (seen.has(key)) continue;

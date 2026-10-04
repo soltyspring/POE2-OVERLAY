@@ -10,6 +10,7 @@
     "check": "node --check src/main.cjs && node --check src/core.cjs && node --check src/market.cjs && node --check src/renderer.js"
   },
   "devDependencies": {
-    "electron": "44.5.1"
+    "electron": "44.5.1",
+    "jsdom": "^29.1.1"
   }
 }

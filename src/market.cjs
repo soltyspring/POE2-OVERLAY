@@ -51,7 +51,9 @@ class Market {
     }
     const staticData = await this.cached('static', `${BASE}/api/trade2/data/static`, 86400000);
     const items = await this.cached('items', `${BASE}/api/trade2/data/items`, 86400000);
-    const catalog = staticData.result.flatMap(group => group.entries.map(e => ({ id: e.id, name: e.text, kind: 'commodity', category: group.id })));
+    let catalog = this.catalog;
+    if (!catalog || this.catalogStatic !== staticData || this.catalogItems !== items) {
+    catalog = staticData.result.flatMap(group => group.entries.map(e => ({ id: e.id, name: e.text, kind: 'commodity', category: group.id })));
     catalog.push({id:'reward:verisium-pile',name:'베리시움 더미',kind:'unpriced'});
     for (const group of items.result) if (group.id === 'gem') for (const e of group.entries) {
       if (e.type) catalog.push({id:`gem:${e.type}`,name:e.type,type:e.type,kind:'gem'});
@@ -60,9 +62,19 @@ class Market {
       catalog.push({ id: `${e.name}:${e.type}`, name: e.name, uniqueName: e.name, type: e.type, kind: 'unique' });
       catalog.push({ id: `${e.name}:${e.type}:base`, name: e.type, uniqueName: e.name, type: e.type, kind: 'candidate' });
     }
+    this.catalog = catalog; this.catalogStatic=staticData;this.catalogItems=items;
+    }
     if (serverData) {
       // Prefer the official localized catalog; append server-only exact names.
-      for (const item of serverData.catalog) if (!catalog.some(existing => existing.name === item.name)) catalog.push(item);
+      const names = new Set(catalog.map(item=>item.name));
+      const extras = serverData.catalog.filter(item=>!names.has(item.name));
+      if (extras.length) {
+        const signature=JSON.stringify(extras);
+        if (this.serverCatalogBase!==catalog || this.serverCatalogSignature!==signature) {
+          this.serverCatalogBase=catalog;this.serverCatalogSignature=signature;this.serverCatalog=[...catalog,...extras];
+        }
+        return {...serverData,catalog:this.serverCatalog};
+      }
       return {...serverData,catalog};
     }
     const categories = ['Currency', 'Fragments', 'Runes', 'Essences', 'Ritual', 'Breach', 'Expedition', 'SoulCores', 'UncutGems'];
