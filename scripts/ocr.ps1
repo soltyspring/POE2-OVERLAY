@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$ImagePath)
+param([string]$ImagePath, [switch]$Worker)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $null = [Windows.Storage.StorageFile, Windows.Storage, ContentType=WindowsRuntime]
@@ -15,6 +15,7 @@ function Await-Result($Operation, $Type) {
 }
 $engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromLanguage([Windows.Globalization.Language]::new('ko-KR'))
 if ($null -eq $engine) { throw '한국어 Windows OCR이 없습니다. Windows 언어 설정에서 한국어 OCR 기능을 설치하세요.' }
+function Read-Ocr([string]$ImagePath) {
 $file = Await-Result ([Windows.Storage.StorageFile]::GetFileFromPathAsync($ImagePath)) ([Windows.Storage.StorageFile])
 $stream = Await-Result ($file.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream])
 try {
@@ -27,6 +28,23 @@ try {
             [pscustomobject]@{ text = $_.Text; x = ($words | ForEach-Object {$_.BoundingRect.X} | Measure-Object -Minimum).Minimum; y = ($words | ForEach-Object {$_.BoundingRect.Y} | Measure-Object -Minimum).Minimum }
         })
         [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-        ConvertTo-Json -InputObject $lines -Depth 5 -Compress
+        return ,$lines
     } finally { $bitmap.Dispose() }
 } finally { $stream.Dispose() }
+}
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+if ($Worker) {
+  while ($null -ne ($request = [Console]::ReadLine())) {
+    try {
+      $path = ($request | ConvertFrom-Json).path
+      $process = [System.Diagnostics.Process]::GetCurrentProcess()
+      $cpuBefore = $process.TotalProcessorTime.TotalMilliseconds
+      $watch = [System.Diagnostics.Stopwatch]::StartNew()
+      $lines = Read-Ocr $path
+      $watch.Stop(); $process.Refresh()
+      $response = @{ lines=@($lines); metrics=@{engine='Windows Korean OCR';ocrMs=$watch.ElapsedMilliseconds;cpuMs=[Math]::Round($process.TotalProcessorTime.TotalMilliseconds-$cpuBefore);rssMB=[Math]::Round($process.WorkingSet64/1MB,1)} }
+    } catch { $response = @{error=$_.Exception.Message} }
+    [Console]::WriteLine((ConvertTo-Json -InputObject $response -Depth 8 -Compress))
+  }
+} else { ConvertTo-Json -InputObject @(Read-Ocr $ImagePath) -Depth 5 -Compress }

@@ -1,3 +1,5 @@
 node_modules/
+.ocr-venv/
+__pycache__/
 dist/
 *.log

@@ -4,6 +4,8 @@
 
 ## 우분투 POE2-Exchange 시세 연결
 
+현재 기본 서버는 `https://poe-exchange.tail37463f.ts.net`입니다. 별도 환경변수 없이 실행해도 이 서버를 사용합니다. 앱에서 실제 플레이 리그를 입력하세요 (`Forbidden Rites` 연결 확인). 주소를 바꾸려면 아래 환경변수를 사용합니다.
+
 [POE2-Exchange](https://github.com/soltyspring/POE2-Exchange)의 기존 `GET /api/markets?league=...`를 사용합니다. DB 파일을 복사하거나 SQLite를 원격으로 직접 열지 않고, 서버가 반환한 리그별 현재 가격을 읽습니다. 서버 수정이나 DB 스키마 변경은 필요하지 않습니다.
 
 오버레이를 종료한 후, 접속 가능한 서버 주소를 설정하고 실행하세요.
@@ -26,6 +28,19 @@ npm start
 
 ## 기본 실행
 
+앱의 **3초마다 자동 스캔** 체크박스로 시작/중지합니다. 조회/OCR 진행 중이면 다음 주기를 건너뛰고, 화폐·보상 집계 시세와 최근 상세 매물 캐시를 먼저 표시합니다. 새 고유/젬 상세 검색은 F6입니다. 작업 시간과 OCR 워커 메모리를 상태 표시줄에 보여 줍니다. 화면 전체가 완전히 같으면 OCR을 재사용합니다.
+
+기본은 실측에서 더 빠르고 가벼웠던 상주 Windows OCR입니다. 오픈소스 RapidOCR도 선택할 수 있습니다 (Python 3.12 권장):
+
+```powershell
+py -3.12 -m venv .ocr-venv
+./.ocr-venv/Scripts/python.exe -m pip install -r scripts/ocr-requirements.txt
+$env:POE_OCR_ENGINE = 'rapidocr'
+npm start
+```
+
+RapidOCR 모델은 첫 실행에 다운로드되므로 첫 스캔이 느릴 수 있습니다. `POE_OCR_ENGINE=windows`로 다시 Windows OCR을 선택합니다. 모델 추론은 로컬 CPU에서 수행하며 스크린샷을 서버에 업로드하지 않습니다. [OCR 속도·자원 실측](docs/ocr-performance.ko.md)을 참고하세요.
+
 Windows 10/11, Node.js 22 이상, Windows 한국어 OCR 언어 기능이 필요합니다.
 
 ```powershell
@@ -34,7 +49,7 @@ npm start
 ```
 
 1. PoE2를 창/테두리 없는 창 모드로 열고 바닥 라벨을 표시합니다.
-2. 앱에서 사용하는 리그의 정확한 이름을 입력합니다. 기본은 `Standard`입니다.
+2. 앱에서 사용하는 리그의 정확한 이름을 입력합니다. 기본은 `Forbidden Rites`입니다.
 3. **F6**: 마우스가 있는 모니터 전체를 한 번 캡처하고 한국어 OCR → 사전 일치 → 시세 조회 → 정렬합니다. 게임 모니터에 마우스를 두세요. 오버레이는 Windows 화면 캡처 제외 기능으로 제외하며 스캔할 때 창을 숨기지 않습니다. Windows 10 2004 이상/11을 권장합니다.
 4. **F8**: 패널 표시/숨기기. 앱이 게임의 라벨 표시 키를 대신 누르지 않습니다.
 5. 판매 전에는 게임에서 아이템을 **Ctrl+C**로 복사한 후 **복사한 아이템 조회**를 누릅니다.

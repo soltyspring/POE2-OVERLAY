@@ -1,5 +1,7 @@
 const el = id => document.getElementById(id);
 const money = value => value.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+el('auto').onchange=async()=>{try {await window.poe.auto(el('auto').checked);}catch(error){el('auto').checked=false;el('status').textContent=error.message;}};
+window.poe.onAuto(enabled=>{el('auto').checked=enabled;});
 window.poe.onBusy(busy => { for (const id of ['scan', 'item', 'league']) el(id).disabled = busy; });
 window.poe.onStatus(text => { el('status').textContent = text; });
 window.poe.onRows(data => {
