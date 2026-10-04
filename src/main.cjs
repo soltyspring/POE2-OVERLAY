@@ -15,6 +15,7 @@ const {readCopiedItem}=require('./copied-item.cjs');
 const {searchSale}=require('./sale-search.cjs');
 const {siteItemUrl}=require('./exchange.cjs');
 const {encodeBitmap,isolateLabels}=require('./ocr-bitmap.cjs');
+const {labelRegions,packLabels,restoreLines}=require('./label-regions.cjs');
 const ocr = new OcrWorker();
 const market = new Market({exchangeUrl:process.env.POE_EXCHANGE_URL ?? 'https://poe-exchange.tail37463f.ts.net'});
 let win, windowState, busy = false;
@@ -52,18 +53,29 @@ async function captureImage(mode) {
     maskBitmap(bitmap,thumbnail.getSize(),mask);
     const hash=display.id+':'+JSON.stringify(region)+':'+createHash('sha256').update(bitmap).digest('hex');
     const reused=!!(hash===lastHash && lastOcr);
-    let image,originalImage,folder;
+    let image,originalImage,folder,placements=null,ocrSize=null;
     if (!reused) {
       folder = await fs.mkdtemp(path.join(os.tmpdir(), 'poe2-scan-'));
       image = path.join(folder, 'capture.bmp');
       originalImage=path.join(folder,'original.bmp');
       try {
         await fs.writeFile(originalImage,encodeBitmap(bitmap,thumbnail.getSize()));
-        await fs.writeFile(image,encodeBitmap(isolateLabels(bitmap),thumbnail.getSize()));
+        const captureSize=thumbnail.getSize();
+        const useRegions=mode==='full'&&captureSize.width>=1200&&captureSize.height>=700;
+        const labelBitmap=useRegions?isolateLabels(bitmap):bitmap;
+        // F7 and small captures already contain little background; packing can
+        // hurt line segmentation there and offers little processing benefit.
+        const regions=useRegions?labelRegions(bitmap,captureSize):[];
+        // Joined tall regions often contain effects crossing multiple labels.
+        // Preserve the full-frame path rather than silently dropping a label.
+        const packed=useRegions&&regions.every(r=>r.height<=80)
+          ?packLabels(labelBitmap,captureSize,regions):null;
+        placements=packed?.placements||null;ocrSize=packed?{width:packed.width,height:packed.height}:thumbnail.getSize();
+        await fs.writeFile(image,encodeBitmap(packed?.buffer||labelBitmap,ocrSize));
       }
       catch(error){await fs.rm(folder,{recursive:true,force:true});throw error;}
     }
-    return {hash,reused,image,originalImage,folder,region};
+    return {hash,reused,image,originalImage,folder,region,placements,ocrSize};
 }
 async function scan(mode = 'full') {
   if (busy) { send('status', '현재 조회가 끝난 뒤 다시 시도하세요.'); return; }
@@ -75,7 +87,7 @@ async function scan(mode = 'full') {
   try {
     send('status', mode === 'mouse' ? '마우스 주변 캡처 중…' : '전체 화면 캡처 중…');
     const captured=await captureImage(mode);
-    const {hash,reused,image,originalImage,region}=captured;folder=captured.folder;
+    const {hash,reused,image,originalImage,region,placements,ocrSize}=captured;folder=captured.folder;
     const captureMs=Date.now()-started;
     windowState.show();
     send('status', '아이템 이름 인식·시세 불러오는 중…');
@@ -83,6 +95,20 @@ async function scan(mode = 'full') {
     const dataPromise=market.loadQuick(scanLeague);dataPromise.catch(()=>{});
     let resolvedData;dataPromise.then(data=>{resolvedData=data;},()=>{});
     let [recognized,catalog]=await Promise.all([reused ? Promise.resolve(lastOcr) : ocr.recognize(image),market.loadCatalog()]);
+    if(!reused&&placements){
+      recognized.lines=restoreLines(recognized.lines,placements);
+      recognized.metrics.labelRegions=placements.length;
+      recognized.metrics.ocrPixels=ocrSize.width*ocrSize.height;
+      if(!scanLines(recognized.lines,catalog,new Map()).length){
+        const original=nativeImage.createFromPath(originalImage),fullSize=original.getSize();
+        const fallbackFile=path.join(folder,'fallback.bmp');
+        await fs.writeFile(fallbackFile,encodeBitmap(isolateLabels(original.toBitmap()),fullSize));
+        const fallback=await ocr.recognize(fallbackFile);
+        fallback.metrics.ocrMs+=recognized.metrics.ocrMs;
+        fallback.metrics.cpuMs+=recognized.metrics.cpuMs;
+        fallback.metrics.labelFallback=true;recognized=fallback;
+      }
+    }
     const regions=!reused&&process.env.POE_OCR_ENGINE!=='rapidocr'?retryRegions(recognized.lines,catalog,{width:region.width,height:region.height}):[];
     if(regions.length){
       const bitmap=nativeImage.createFromPath(originalImage);
