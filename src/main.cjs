@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, desktopCapturer, ipcMain, clipboard, shell, screen } = require('electron');
+const { app, BrowserWindow, globalShortcut, desktopCapturer, ipcMain, clipboard, shell, screen,nativeImage } = require('electron');
 const {createHash} = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -9,6 +9,7 @@ const { WindowState } = require('./window-state.cjs');
 const {OcrWorker} = require('./ocr-worker.cjs');
 const {captureRegion} = require('./capture-region.cjs');
 const {readGeometry,saveGeometry}=require('./window-geometry.cjs');
+const {retryRegions,isolateYellow,padBitmap,mergeRetry}=require('./ocr-retry.cjs');
 const ocr = new OcrWorker();
 const market = new Market({exchangeUrl:process.env.POE_EXCHANGE_URL ?? 'https://poe-exchange.tail37463f.ts.net'});
 let win, windowState, busy = false;
@@ -67,7 +68,24 @@ async function scan(mode = 'full') {
     const ocrStarted=Date.now();
     const dataPromise=market.loadQuick(scanLeague);dataPromise.catch(()=>{});
     let resolvedData;dataPromise.then(data=>{resolvedData=data;},()=>{});
-    const [recognized,catalog]=await Promise.all([reused ? Promise.resolve(lastOcr) : ocr.recognize(image),market.loadCatalog()]);
+    let [recognized,catalog]=await Promise.all([reused ? Promise.resolve(lastOcr) : ocr.recognize(image),market.loadCatalog()]);
+    const regions=!reused&&process.env.POE_OCR_ENGINE!=='rapidocr'?retryRegions(recognized.lines,catalog,{width:region.width,height:region.height}):[];
+    if(regions.length){
+      const bitmap=nativeImage.createFromPath(image);
+      let retryMs=0;
+      for(let i=0;i<regions.length;i++){
+        const region=regions[i],crop=bitmap.crop(region),size=crop.getSize();
+        const padded=padBitmap(isolateYellow(crop.toBitmap()),size);
+        const enhanced=nativeImage.createFromBitmap(padded.buffer,{width:padded.width,height:padded.height}).resize({width:padded.width*2,height:padded.height*2,quality:'best'});
+        const retryFile=path.join(folder,`retry-${i}.png`);
+        try{
+          await fs.writeFile(retryFile,enhanced.toPNG());
+          const result=await ocr.recognize(retryFile);retryMs+=result.metrics.ocrMs;
+          recognized={...recognized,lines:mergeRetry(recognized.lines,result.lines,region,40)};
+        }catch(error){console.error('Label OCR retry:',error.message);}
+      }
+      recognized.metrics.retryMs=retryMs;
+    }
     const lines=recognized.lines.map(line=>({...line,x:line.x+region.x,y:line.y+region.y}));
     const firstResultMs=Date.now()-started;
     if(!resolvedData){

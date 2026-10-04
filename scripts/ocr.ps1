@@ -25,7 +25,11 @@ try {
         $result = Await-Result ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
         $lines = @($result.Lines | ForEach-Object {
             $words = @($_.Words)
-            [pscustomobject]@{ text = $_.Text; x = ($words | ForEach-Object {$_.BoundingRect.X} | Measure-Object -Minimum).Minimum; y = ($words | ForEach-Object {$_.BoundingRect.Y} | Measure-Object -Minimum).Minimum }
+            $left = ($words | ForEach-Object {$_.BoundingRect.X} | Measure-Object -Minimum).Minimum
+            $top = ($words | ForEach-Object {$_.BoundingRect.Y} | Measure-Object -Minimum).Minimum
+            $right = ($words | ForEach-Object {$_.BoundingRect.X + $_.BoundingRect.Width} | Measure-Object -Maximum).Maximum
+            $bottom = ($words | ForEach-Object {$_.BoundingRect.Y + $_.BoundingRect.Height} | Measure-Object -Maximum).Maximum
+            [pscustomobject]@{ text = $_.Text; x = $left; y = $top; width = $right-$left; height = $bottom-$top }
         })
         [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
         return ,$lines
