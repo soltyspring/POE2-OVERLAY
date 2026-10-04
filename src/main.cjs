@@ -134,7 +134,7 @@ ipcMain.handle('item', async () => {
 });
 ipcMain.handle('open', async (_event, url) => {
   const parsed = new URL(url);
-  if (parsed.origin !== 'https://poe.kakaogames.com' || !parsed.pathname.startsWith('/trade2/search/')) throw new Error('허용되지 않은 거래 링크입니다.');
+  if (parsed.origin !== 'https://www.pathofexile.com' || !parsed.pathname.startsWith('/trade2/search/')) throw new Error('허용되지 않은 거래 링크입니다.');
   await shell.openExternal(url);
 });
 app.on('will-quit', () => {autoScan.stop();ocr.stop();globalShortcut.unregisterAll();});

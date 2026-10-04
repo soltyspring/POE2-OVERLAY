@@ -40,7 +40,7 @@ test('고유 허리띠 베이스는 종류를 확정하지 않고 고유 전체�
   const query = tradeQuery({type: row.type, rarity:'고유', filters:[]});
   assert.equal(query.query.name, undefined);
   assert.equal(query.query.filters.type_filters.filters.rarity.option, 'unique');
-  applyGearPrices(row, {prices:[50, 2, 12, NaN, 0], url:'https://poe.kakaogames.com/trade2/search/Standard/test'});
+  applyGearPrices(row, {prices:[50, 2, 12, NaN, 0], url:'https://www.pathofexile.com/trade2/search/Standard/test'});
   assert.equal(row.totalEx,2); assert.equal(row.priceKind,'candidate-minimum');
   assert.deepEqual(row.candidates,['A','B']); assert.match(row.status,/종류·옵션 미확정/);
 });

@@ -86,7 +86,7 @@ class Market {
     if (cached && Date.now() - cached.time < 60000) return cached.value;
     const data = await this.request(`${BASE}/api/trade2/search/${encodeURIComponent(league)}`, query);
     if (!data.id || !Array.isArray(data.result)) throw new Error('거래 검색 응답을 확인할 수 없습니다.');
-    const url = `${BASE}/trade2/search/${encodeURIComponent(league)}/${encodeURIComponent(data.id)}`;
+    const url = `https://www.pathofexile.com/trade2/search/${encodeURIComponent(league)}/${encodeURIComponent(data.id)}`;
     if (!data.result.length) return { url, prices: [], total: data.total };
     const fetched = await this.request(`${BASE}/api/trade2/fetch/${data.result.slice(0, 10).map(encodeURIComponent).join(',')}?query=${encodeURIComponent(data.id)}`);
     const listings = fetched.result.map(r => r?.listing?.price).filter(p => Number.isFinite(p?.amount) && p.amount > 0);
