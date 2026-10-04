@@ -12,7 +12,7 @@ function setup(){
   dom.window.eval(fs.readFileSync(path.join(__dirname,'../src/renderer.js'),'utf8'));
   return {dom,events,opened,document:dom.window.document};
 }
-const priced={key:'a',name:'카오스 오브',count:3,totalEx:12,totalDivine:0.01234,unitEx:4,status:'참고 시세',kind:'commodity',candidates:[],url:'https://www.pathofexile.com/trade2/search/Standard/test'};
+const priced={key:'a',name:'카오스 오브',count:3,totalEx:12,totalDivine:0.01234,unitEx:4,status:'참고 시세',kind:'commodity',candidates:[],siteUrl:'https://poe-exchange.tail37463f.ts.net/?league=Standard&item=exchange%3ACurrency%3Achaos'};
 test('오버레이 붙여넣기는 판매 패널을 열고 조회하며 진행 중 중복 실행을 막는다',async()=>{
   const {dom,document}=setup();let calls=0,finish;
   dom.window.poe.item=()=>{calls++;return new Promise(resolve=>finish=resolve);};
@@ -30,7 +30,7 @@ test('같은 결과 갱신 시 행·버튼을 재사용하며 클릭 포커스�
   const first=document.querySelector('.row'),button=first.querySelector('button');button.focus();
   events.rows(payload([{...priced}, {...unknown}]));
   assert.equal(document.querySelector('.row'),first);assert.equal(document.activeElement,button);
-  button.click();assert.equal(opened[0],priced.url);
+  button.click();assert.equal(opened[0],priced.siteUrl);
   assert.equal(document.getElementById('found').textContent,'2');assert.equal(document.getElementById('priced').textContent,'1');
   dom.window.close();
 });
