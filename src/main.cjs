@@ -83,17 +83,17 @@ async function scan(mode = 'full') {
       publishRows(rows,data);
     };
     emit();
-    const uniques = rows.filter(row => row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
+    const uniques = rows.filter(row => row.kind === 'waystone' || row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
     const byName = new Map();
     for (const row of uniques) {
       const candidate = row.kind === 'candidate';
-      const searchKey = row.kind === 'gem' ? `gem:${row.type}:${row.level}` : candidate ? `base:${row.type}` : `name:${row.uniqueName}:${row.type}`;
+      const searchKey = row.kind==='waystone' ? `waystone:${row.tier}` : row.kind === 'gem' ? `gem:${row.type}:${row.level}` : candidate ? `base:${row.type}` : `name:${row.uniqueName}:${row.type}`;
       if (!byName.has(searchKey) && byName.size >= 5) { row.status = '이번 스캔 장비·젬 검색 5종 한도 · 복사 후 조회'; continue; }
       try {
-        send('status', row.kind === 'gem' ? `레벨 ${row.level} 젬 최저 매물 조회: ${row.type}…` : candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
+        send('status', row.kind==='waystone' ? `${row.tier}등급 경로석 매물 조회…` : row.kind === 'gem' ? `레벨 ${row.level} 젬 최저 매물 조회: ${row.type}…` : candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
         let result = byName.get(searchKey);
         if (!result) {
-          const query=tradeQuery({ kind:row.kind, level:row.level, name: candidate ? null : row.uniqueName, type: row.type, rarity: '고유', filters: [] });
+          const query=tradeQuery({ kind:row.kind, tier:row.tier, level:row.level, name: candidate ? null : row.uniqueName, type: row.type, rarity: '고유', filters: [] });
           result = await market.search(scanLeague, query, data.prices);
           byName.set(searchKey, result);
         }

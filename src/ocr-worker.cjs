@@ -36,7 +36,7 @@ class OcrWorker {
     return new Promise((resolve,reject)=>{
       const timer=setTimeout(()=>{this.fail(new Error('OCR 시간 초과'));this.stop();},90000);
       this.pending={resolve,reject,timer};
-      this.child.stdin.write(JSON.stringify({path:image})+'\n');
+      this.child.stdin.write(JSON.stringify({path:path.resolve(image)})+'\n');
     });
   }
   stop() { clearTimeout(this.idleTimer);const child=this.child;this.child=null;this.fail(new Error('OCR 중지'));child?.kill(); }

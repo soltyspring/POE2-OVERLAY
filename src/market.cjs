@@ -107,6 +107,10 @@ class Market {
     if (!catalog || this.catalogStatic !== staticData || this.catalogItems !== items) {
     catalog = staticData.result.flatMap(group => group.entries.map(e => ({ id: e.id, name: e.text, kind: 'commodity', category: group.id })));
     catalog.push({id:'reward:verisium-pile',name:'베리시움 더미',kind:'unpriced'});
+    for(const group of items.result)if(group.id==='map')for(const entry of group.entries){
+      const match=entry.type?.match(/^경로석\s*\((\d+)등급\)$/);
+      if(match)catalog.push({id:`waystone:${match[1]}`,name:entry.type,type:entry.type,kind:'waystone',tier:Number(match[1])});
+    }
     for (const group of items.result) if (group.id === 'gem') for (const e of group.entries) {
       if (e.type) catalog.push({id:`gem:${e.type}`,name:e.type,type:e.type,kind:'gem'});
     }
