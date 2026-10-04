@@ -2,7 +2,7 @@ const el = id => document.getElementById(id);
 const money = formatPrice;
 window.poe.onBusy(busy => { for (const id of ['scan', 'mouse', 'item']) el(id).disabled = busy;const dot=el('activity');dot.classList.toggle('loading',busy);if(busy)dot.classList.remove('error');dot.title=busy?'갱신 중':dot.classList.contains('error')?'조회 실패':'대기 중';dot.setAttribute('aria-label',dot.title); });
 window.poe.onHealth(state=>{const dot=el('activity');dot.classList.toggle('loading',state==='loading');dot.classList.toggle('error',state==='error');dot.title=state==='error'?'조회 실패':state==='loading'?'갱신 중':'대기 중';dot.setAttribute('aria-label',dot.title);});
-window.poe.onStatus(text => { el('status').textContent = text; });
+window.poe.onStatus(text => { el('status').textContent = text;el('status').title=text; });
 window.poe.onMetrics(data=>{el('metrics').textContent=`첫 결과 ${data.firstResultMs}ms · 전체 ${data.totalMs}ms\n캡처 ${data.captureMs}ms · 인식·시세 ${data.recognizeAndPriceMs}ms\n${data.engine} · ${data.reused?'같은 화면 · OCR 생략':'OCR '+data.ocrMs+'ms'} · OCR 워커 ${data.rssMB}MB\n앱 전체 또는 게임의 자원 사용량은 포함하지 않습니다.`;});
 let currentData=null;
 const records=new Map();
@@ -28,10 +28,14 @@ function renderRows() {
     const signature=JSON.stringify(row);
     if(record.signature!==signature){
       record.row=row;record.signature=signature;
-      record.name.textContent=`${row.name}${row.count>1?' ×'+row.count:''}`;
+      record.name.replaceChildren();
+      const parts=row.name.split(' · ');
+      record.name.append(document.createTextNode(parts[0]));
+      if(row.count>1){const count=document.createElement('span');count.className='item-count';count.textContent='×'+row.count;record.name.append(count);}
+      if(parts.length>1){const base=document.createElement('span');base.className='item-base';base.textContent=parts.slice(1).join(' · ');record.name.append(base);}
       record.price.className='price'+(row.totalEx===null?' unknown':'');
       record.price.replaceChildren();
-      if(row.totalEx===null)record.price.textContent='확인 필요';
+      if(row.totalEx===null)record.price.textContent=/조회.*중|조회 대기/.test(row.status)?'조회 중…':'확인 필요';
       else {
         const exalted=document.createElement('span'),divine=document.createElement('span');
         exalted.textContent=money(row.totalEx)+' 엑잘';divine.textContent=money(row.totalDivine)+' 신성';divine.className='divine-price';
@@ -40,8 +44,9 @@ function renderRows() {
         exalted.title=row.totalEx.toLocaleString('ko-KR',{maximumFractionDigits:20})+' 엑잘';
         record.price.append(exalted,divine);
       }
-      const label=row.priceKind==='base-minimum'?'베이스 최저 · ':row.priceKind==='candidate-minimum'?'고유 후보 최저 · ':['unique-minimum','gem-minimum','waystone-minimum'].includes(row.priceKind)?'조회 최저 · ':'';
-      record.note.textContent=label+row.status+(row.kind==='candidate'?' · '+[...new Set(row.candidates)].slice(0,8).join(', '):row.unitEx!==null?' · 개당 '+money(row.unitEx)+' 엑잘':'');
+      const labels={'base-minimum':'베이스 최저 · 옵션 미반영','candidate-minimum':'고유 후보 최저 · 종류 확인 필요','unique-minimum':'고유 최저 · 옵션 미반영','gem-minimum':'동일 레벨 최저 · 품질 미반영','waystone-minimum':'동일 등급 최저 · 옵션 미반영'};
+      record.note.textContent=(labels[row.priceKind]||row.status)+(row.count>1&&row.unitEx!==null?' · 개당 '+money(row.unitEx)+' 엑잘':'');
+      record.note.title=row.status+(row.kind==='candidate'?' · '+[...new Set(row.candidates)].join(', '):'');
       record.button.hidden=!row.url;
     }
     if(el('rows').children[i]!==record.article)el('rows').insertBefore(record.article,el('rows').children[i]||null);

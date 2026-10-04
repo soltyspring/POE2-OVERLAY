@@ -44,3 +44,13 @@ test('두 캡처 버튼만 제공하고 조회 중 잠근다',async()=>{
   events.health('error');assert.equal(document.getElementById('activity').classList.contains('error'),true);events.health('ready');assert.equal(document.getElementById('activity').classList.contains('error'),false);events.busy(false);assert.equal(document.getElementById('activity').classList.contains('loading'),false);assert.equal(document.getElementById('activity').getAttribute('aria-label'),'대기 중');const modes=[];dom.window.poe.scan=async mode=>modes.push(mode);
   await document.getElementById('scan').onclick();await document.getElementById('mouse').onclick();assert.deepEqual(modes,['full','mouse']);dom.window.close();
 });
+test('이름·베이스·가격을 분리하고 설명은 짧게 표시하며 상세 내용을 보존한다',()=>{
+  const {dom,events,document}=setup();
+  events.rows(payload([{...priced,name:'복수의 눈 · 에메랄드 반지',count:1,kind:'named-gear',priceKind:'base-minimum',status:'같은 베이스 조회 10매물 최저 · 희귀도·옵션 미반영'}]));
+  assert.equal(document.querySelector('.item-base').textContent,'에메랄드 반지');
+  assert.equal(document.querySelector('.row small').textContent,'베이스 최저 · 옵션 미반영');
+  assert.match(document.querySelector('.row small').title,/10매물/);
+  assert.equal(document.querySelectorAll('.price>span').length,2);
+  events.rows(payload([{...unknown,status:'가격 조회 중…'}]));assert.equal(document.querySelector('.price').textContent,'조회 중…');
+  dom.window.close();
+});

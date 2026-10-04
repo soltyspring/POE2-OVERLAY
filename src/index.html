@@ -1,15 +1,15 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'"><title>PoE2 드랍 시세</title><link rel="stylesheet" href="ui.css"></head>
 <body>
-<header><div><small>POE2 · 한국어</small><h1>드랍·보상 시세</h1></div><span class="badge">단축키 스캔</span></header>
+<header><div><small>POE2 · 한국어</small><h1>아이템 시세</h1></div><span class="badge">POE2 OVERLAY</span></header>
 <section class="scan-settings" aria-label="스캔 설정">
 <div class="controls"><button id="scan">전체 화면 <kbd>F6</kbd></button><button id="mouse">마우스 주변 <kbd>F7</kbd></button></div>
-<p class="hint">게임 모니터에 마우스를 두고 단축키를 누르세요. F7은 마우스 주변 아이템·툴팁 영역을 읽습니다.</p>
+<p class="hint">게임 화면에 마우스를 두고 스캔하세요.</p>
 </section>
-<div class="status-bar"><p id="status" role="status">준비 중…</p></div>
+
 <div class="summary"><span><b id="found">0</b> 인식</span><span><b id="priced">0</b> 가격 있음</span><span class="best">최고 참고가 <b id="highest">—</b></span></div>
-<div class="list-tools"><select id="filter" aria-label="결과 표시"><option value="all">전체</option><option value="priced">가격 있음</option><option value="unknown">확인 필요</option></select></div>
-<main id="rows" aria-label="가격 높은 순 아이템 목록"><p class="empty">바닥 라벨이나 보상 메뉴를 표시하고<br>게임 모니터에 마우스를 둔 뒤 F6을 누르세요.</p></main>
+<div class="list-tools"><span>가격 높은 순</span><select id="filter" aria-label="결과 표시"><option value="all">모든 아이템</option><option value="priced">가격 있음</option><option value="unknown">확인 필요</option></select></div>
+<main id="rows" aria-label="가격 높은 순 아이템 목록"><p class="empty">아직 스캔한 아이템이 없습니다.<br>바닥 라벨이나 보상 메뉴를 열고 F6을 누르세요.</p></main>
 <details class="panel"><summary>판매 전 옵션 비교</summary><p>게임에서 아이템 위에 마우스를 올리고 Ctrl+C로 복사하세요.</p><button id="item">복사한 아이템 조회</button><div id="detail"></div></details>
 <details class="panel diagnostics"><summary>스캔 성능·도움말</summary><p id="metrics">첫 스캔 후 처리 시간과 OCR 메모리를 표시합니다.</p><p>바닥·보상 목록은 F6, 마우스 주변은 F7로 읽으세요. 주황색 판별·툴팁 옵션 OCR은 아직 지원하지 않습니다.</p></details>
-<footer>가격은 엑잘 기준의 참고값 · 실제 판매가와 다를 수 있습니다.<span id="activity" class="refresh-dot" role="status" aria-label="대기 중" title="대기 중"></span></footer>
+<footer class="status-bar"><p id="status" role="status">스캔할 준비가 되었습니다.</p><span id="activity" class="refresh-dot" role="status" aria-label="대기 중" title="대기 중"></span></footer>
 <script src="price-format.js"></script><script src="renderer.js"></script></body></html>
