@@ -46,6 +46,7 @@ function renderRows() {
       }
       const labels={'base-minimum':'베이스 최저 · 옵션 미반영','candidate-minimum':'고유 후보 최저 · 종류 확인 필요','unique-minimum':'고유 최저 · 옵션 미반영','gem-minimum':'동일 레벨 최저 · 품질 미반영','waystone-minimum':'동일 등급 최저 · 옵션 미반영'};
       record.note.textContent=(labels[row.priceKind]||row.status)+(row.count>1&&row.unitEx!==null?' · 개당 '+money(row.unitEx)+' 엑잘':'');
+      record.note.dataset.priceKind=row.priceKind||'unknown';
       record.note.title=row.status+(row.kind==='candidate'?' · '+[...new Set(row.candidates)].join(', '):'');
       record.button.hidden=!row.url;
     }
@@ -53,7 +54,7 @@ function renderRows() {
   }
   const desiredNodes=new Set(rows.map(row=>records.get(row.key).article));
   for(const child of [...el('rows').children])if(!desiredNodes.has(child))child.remove();
-  if(!rows.length){empty.textContent=currentData.rows.length?'검색·필터에 맞는 아이템이 없습니다.':'인식된 아이템이 없습니다. 라벨 표시와 인식 영역을 확인하세요.';el('rows').append(empty);}
+  if(!rows.length){empty.textContent=currentData.rows.length?'필터에 맞는 아이템이 없습니다.\n다른 필터를 선택하면 전체 결과를 볼 수 있습니다.':'인식된 아이템이 없습니다.\n라벨이 표시되어 있는지 확인하고 다시 스캔하세요.';el('rows').append(empty);}
 }
 el('filter').onchange=renderRows;
 window.poe.onRows(data => {
@@ -64,12 +65,26 @@ window.poe.onRows(data => {
   renderRows();
 });
 for (const [id,mode] of [['scan','full'],['mouse','mouse']]) el(id).onclick = async () => {try {await window.poe.scan(mode);} catch(error) {el('status').textContent=error.message;}};
+function renderSaleResult(data){
+  const container=el('detail');container.replaceChildren();
+  const title=document.createElement('strong');title.className='sale-title';title.textContent=data.item.name||data.item.type;
+  const summary=document.createElement('p');summary.className='sale-summary';summary.textContent=`옵션 ${data.item.filters.length}개 적용 · 비교 매물 ${data.total.toLocaleString('ko-KR')}개`;
+  const range=document.createElement('div');range.className='sale-range';
+  const label=document.createElement('span');label.textContent='조회 매물 가격';
+  const price=document.createElement('strong');price.textContent=data.prices.length?`${money(data.prices[0])}${data.prices.length>1?' ~ '+money(data.prices.at(-1)):''} 엑잘`:'조건에 맞는 환산 매물이 없습니다.';
+  range.append(label,price);container.append(title,summary,range);
+  const addList=(heading,items)=>{const details=document.createElement('details'),headingNode=document.createElement('summary'),list=document.createElement('ul');details.className='option-list';headingNode.textContent=heading;for(const text of items){const li=document.createElement('li');li.textContent=text;list.append(li);}details.append(headingNode,list);container.append(details);};
+  if(data.item.filters.length)addList('검색에 포함한 옵션',data.item.filters.map(f=>f.text));
+  if(data.item.unmatched.length){const warning=document.createElement('p');warning.className='selection-warning';warning.textContent=`옵션 ${data.item.unmatched.length}개는 검색에서 제외되었습니다.`;container.append(warning);addList('제외된 옵션 확인',data.item.unmatched);}
+  if(data.skippedCurrencies?.length){const warning=document.createElement('p');warning.className='selection-warning';warning.textContent='환율이 없는 매물은 가격 비교에서 제외했습니다.';container.append(warning);}
+  const button=document.createElement('button');button.textContent='공식 거래 사이트에서 비교 ↗';button.onclick=()=>window.poe.open(data.url).catch(error=>{el('status').textContent=error.message;});
+  const reference=document.createElement('p');reference.className='sale-reference';reference.textContent='조회된 매물 기준의 참고 가격입니다.';container.append(button,reference);
+}
 el('item').onclick = async () => {
   el('item').disabled = true; el('detail').textContent = '거래 검색 중…';
   try {
     const data = await window.poe.item();
-    el('detail').textContent = `${data.item.name || data.item.type}\n확인된 옵션 ${data.item.filters.length}개 · 비교 매물 ${data.total}개\n${data.prices.length ? '엑잘 환산 매물: ' + data.prices.map(money).join(', ') : '환산 가능한 매물이 없습니다.'}\n${data.item.unmatched.length ? '검색에 포함되지 않은 수치 줄: ' + data.item.unmatched.join(' / ') : ''}\n${data.skippedCurrencies?.length ? '환율이 없어 제외한 화폐: ' + data.skippedCurrencies.join(', ') : ''}`;
-    const button = document.createElement('button'); button.textContent = '공식 거래 사이트에서 비교'; button.onclick = () => window.poe.open(data.url).catch(error => { el('status').textContent = error.message; }); el('detail').append(document.createElement('br'), button);
+    renderSaleResult(data);
   } catch (error) { el('detail').textContent = error.message.replace(/^Error invoking remote method 'item':\s*(?:Error:\s*)?/,''); }
   finally { el('item').disabled = false; }
 };

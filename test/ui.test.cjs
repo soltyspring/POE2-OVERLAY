@@ -54,3 +54,15 @@ test('이름·베이스·가격을 분리하고 설명은 짧게 표시하며 �
   events.rows(payload([{...unknown,status:'가격 조회 중…'}]));assert.equal(document.querySelector('.price').textContent,'조회 중…');
   dom.window.close();
 });
+test('판매 결과의 가격 범위와 제외된 옵션을 보여주고 거래 링크를 열 수 있다',async()=>{
+  const {dom,document,opened}=setup();
+  const url='https://www.pathofexile.com/trade2/search/Standard/test';
+  dom.window.poe.item=async()=>({item:{type:'태양의 목걸이',filters:[{text:'생명력 최대치 +62'}],unmatched:['화염 피해 10~20 추가']},total:123,prices:[5,8,12],url});
+  await document.getElementById('item').onclick();
+  assert.equal(document.querySelector('.sale-title').textContent,'태양의 목걸이');
+  assert.equal(document.querySelector('.sale-range strong').textContent,'5 ~ 12 엑잘');
+  assert.match(document.querySelector('.selection-warning').textContent,/옵션 1개/);
+  assert.equal(document.querySelectorAll('.option-list').length,2);
+  document.querySelector('#detail button').click();assert.equal(opened[0],url);
+  assert.equal(document.getElementById('item').disabled,false);dom.window.close();
+});
