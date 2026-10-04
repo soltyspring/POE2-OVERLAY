@@ -90,6 +90,7 @@ else {
 app.on('second-instance', () => { if (windowState) { windowState.visible = true; windowState.show(); win.focus(); } });
 app.whenReady().then(() => {
   win = new BrowserWindow({ width: 530, height: 760, minWidth: 450, minHeight: 400, show:!process.argv.includes('--smoke-test'), minimizable: false, focusable: true, alwaysOnTop: true, title: 'PoE2 드랍 시세', backgroundColor: '#111820', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  win.setOpacity(0.94);
   windowState = new WindowState(win);
   // Windows 10 2004+: exclude our window from capture instead of hiding it on click.
   win.setContentProtection(true);
