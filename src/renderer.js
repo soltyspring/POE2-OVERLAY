@@ -82,6 +82,7 @@ function renderSaleResult(data){
   const reference=document.createElement('p');reference.className='sale-reference';reference.textContent='조회된 매물 기준의 참고 가격입니다.';container.append(button,reference);
 }
 el('item').onclick = async () => {
+  el('item').closest('details').open=true;
   el('item').disabled = true; el('detail').textContent = '거래 검색 중…';
   try {
     const data = await window.poe.item();
@@ -89,3 +90,9 @@ el('item').onclick = async () => {
   } catch (error) { el('detail').textContent = error.message.replace(/^Error invoking remote method 'item':\s*(?:Error:\s*)?/,''); }
   finally { el('item').disabled = false; }
 };
+document.addEventListener('paste',event=>{
+  const target=event.target;
+  if(target instanceof Element && target.closest('input,textarea,[contenteditable="true"]'))return;
+  event.preventDefault();
+  if(!el('item').disabled)void el('item').onclick();
+});

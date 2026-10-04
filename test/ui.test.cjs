@@ -13,6 +13,15 @@ function setup(){
   return {dom,events,opened,document:dom.window.document};
 }
 const priced={key:'a',name:'카오스 오브',count:3,totalEx:12,totalDivine:0.01234,unitEx:4,status:'참고 시세',kind:'commodity',candidates:[],url:'https://www.pathofexile.com/trade2/search/Standard/test'};
+test('오버레이 붙여넣기는 판매 패널을 열고 조회하며 진행 중 중복 실행을 막는다',async()=>{
+  const {dom,document}=setup();let calls=0,finish;
+  dom.window.poe.item=()=>{calls++;return new Promise(resolve=>finish=resolve);};
+  const paste=()=>document.dispatchEvent(new dom.window.Event('paste',{bubbles:true,cancelable:true}));
+  paste();paste();assert.equal(calls,1);assert.equal(document.querySelector('.sales-panel').open,true);
+  finish({item:{type:'반지',filters:[],unmatched:[]},total:0,prices:[],url:'test'});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(document.getElementById('item').disabled,false);dom.window.close();
+});
 const unknown={key:'b',name:'무거운 허리띠',count:1,totalEx:null,unitEx:null,status:'확인 필요',kind:'candidate',candidates:['A']};
 function payload(rows){return {rows,league:'Standard',priceSource:'테스트',updatedAt:null,warnings:[]};}
 test('같은 결과 갱신 시 행·버튼을 재사용하며 클릭 포커스가 유지된다',()=>{

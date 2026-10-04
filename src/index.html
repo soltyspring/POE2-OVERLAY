@@ -20,7 +20,7 @@
 <div class="list-tools"><div><h2>스캔 결과</h2><span>가격 높은 순</span></div><select id="filter" aria-label="결과 표시"><option value="all">모든 아이템</option><option value="priced">가격 있음</option><option value="unknown">확인 필요</option></select></div>
 <main id="rows" aria-label="가격 높은 순 아이템 목록"><p class="empty"><strong>첫 스캔을 시작하세요</strong><span>바닥 라벨이나 보상 메뉴를 표시한 뒤<br>F6 또는 F7을 누르면 가격을 확인할 수 있습니다.</span></p></main>
 <section class="secondary-panels" aria-label="판매 비교 및 도움말">
-<details class="panel sales-panel"><summary><span>판매 전 옵션 비교<small>복사한 아이템으로 더 자세히</small></span></summary><div class="panel-body"><p>인벤토리·보관함의 아이템 위에서 <kbd>Ctrl+C</kbd>로 복사하세요. 복사가 안 되면 <kbd>Ctrl+Alt+C</kbd>도 시도하세요.</p><button id="item">복사한 아이템 조회</button><div id="detail" role="status"></div></div></details>
+<details class="panel sales-panel"><summary><span>판매 전 옵션 비교<small>복사한 아이템으로 더 자세히</small></span></summary><div class="panel-body"><p>인벤토리·보관함의 아이템 위에서 <kbd>Ctrl+C</kbd>로 복사하세요. 복사가 안 되면 <kbd>Ctrl+Alt+C</kbd>도 시도하세요. 오버레이를 클릭한 뒤 <kbd>Ctrl+V</kbd>를 누르면 바로 조회합니다.</p><button id="item">복사한 아이템 조회</button><div id="detail" role="status"></div></div></details>
 <details class="panel diagnostics"><summary>도움말 · 스캔 성능</summary><div class="panel-body"><p>전체 목록은 F6, 마우스 주변은 F7로 읽습니다. 패널 뒤에 가려진 아이템은 읽지 못하므로 패널을 빈 공간에 두세요.</p><p>베이스 참고가는 같은 베이스의 조회 매물 중 최저가입니다. 옵션별 가치와 실제 판매가를 보장하지 않습니다. 옵션 비교는 복사한 아이템으로 진행하세요.</p><p id="metrics">스캔 후 처리 시간과 OCR 메모리를 확인할 수 있습니다.</p></div></details>
 </section>
 <footer class="status-bar"><p id="status" role="status">스캔할 준비가 되었습니다.</p><span id="activity" class="refresh-dot" role="status" aria-label="대기 중" title="대기 중"></span></footer>
