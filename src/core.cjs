@@ -17,8 +17,10 @@ function scanLines(lines, catalog, prices) {
   const seen = new Set();
   for (const line of lines) {
     const q = quantity(line.text);
+    const gem = q.name.match(/^(스킬|보조)(?:\s*레벨\s*(\d+))?\s*:\s*(.+)$/);
+    const lookupName = gem ? gem[3].trim() : q.name;
     if (!Number.isSafeInteger(q.count) || q.count < 1) continue;
-    const matches = catalog.filter(item => normalize(item.name) === normalize(q.name));
+    const matches = catalog.filter(item => normalize(item.name) === normalize(lookupName) && (gem ? item.kind === 'gem' : item.kind !== 'gem'));
     if (!matches.length) continue;
     const key = `${normalize(q.name)}:${Math.round(line.x)}:${Math.round(line.y)}`;
     if (seen.has(key)) continue;
@@ -27,10 +29,10 @@ function scanLines(lines, catalog, prices) {
     const candidateType = matches.every(m => m.kind === 'candidate' && m.type && m.type === matches[0].type) ? matches[0].type : undefined;
     const unit = item?.kind === 'commodity' ? prices.get(item.id) : undefined;
     rows.push({ key, name: q.name, count: q.count, x: line.x, y: line.y,
-      kind: item?.kind || 'candidate', type: item?.type || candidateType, uniqueName: item?.uniqueName, candidates: matches.map(m => m.uniqueName || m.name),
+      kind: item?.kind || 'candidate', type: item?.type || candidateType, level: gem?.[2] ? Number(gem[2]) : null, uniqueName: item?.uniqueName, candidates: matches.map(m => m.uniqueName || m.name),
       unitEx: Number.isFinite(unit) && unit > 0 ? unit : null,
       totalEx: Number.isFinite(unit) && unit > 0 ? unit * q.count : null,
-      status: item?.kind === 'commodity' ? (unit > 0 ? '참고 시세' : '시세 없음') : '고유 종류·옵션 확인 필요' });
+      status: item?.kind === 'commodity' ? (unit > 0 ? '참고 시세' : '시세 없음') : item?.kind === 'gem' ? (gem?.[2] ? '동일 레벨 젬 조회 대기' : '젬 레벨 확인 필요') : item?.kind === 'unpriced' ? '보상 수량·거래 종류 확인 필요' : '고유 종류·옵션 확인 필요' });
   }
   return rows.sort((a, b) => (b.totalEx ?? -1) - (a.totalEx ?? -1));
 }
@@ -42,10 +44,10 @@ function applyGearPrices(row, result) {
   const candidate = row.kind === 'candidate';
   row.unitEx = prices[0];
   row.totalEx = row.unitEx * row.count;
-  row.priceKind = candidate ? 'candidate-minimum' : 'unique-minimum';
+  row.priceKind = candidate ? 'candidate-minimum' : row.kind === 'gem' ? 'gem-minimum' : 'unique-minimum';
   row.status = candidate
     ? `같은 베이스의 고유 후보 · 조회 ${prices.length}매물 최저 · 종류·옵션 미확정`
-    : `이름 기준 조회 ${prices.length}매물 최저 · 옵션 미반영`;
+    : row.kind === 'gem' ? `레벨 ${row.level} 동일 젬 · 조회 ${prices.length}매물 최저 · 품질 미반영` : `이름 기준 조회 ${prices.length}매물 최저 · 옵션 미반영`;
   if (result.skippedCurrencies?.length) row.status += ' · 환율 없는 매물 제외';
   return row;
 }
@@ -91,6 +93,13 @@ function parseItem(text, statEntries) {
 }
 
 function tradeQuery(item) {
+  if (item.kind === 'gem') {
+    if (!Number.isInteger(item.level) || item.level < 1 || item.level > 40) throw new Error('젬 레벨 확인이 필요합니다.');
+    return { query: { status: { option: 'online' }, type: item.type, stats: [{type:'and',filters:[]}], filters: {
+      type_filters: {filters:{category:{option:'gem'}}},
+      misc_filters: {filters:{gem_level:{min:item.level,max:item.level}}}
+    } }, sort:{price:'asc'} };
+  }
   if (item.unidentified && item.rarity !== '고유') throw new Error('미확인 장비는 옵션 검색할 수 없습니다.');
   if (item.rarity !== '고유' && !item.filters.length) throw new Error('확인된 옵션이 없습니다. 베이스만으로 희귀 장비 가격을 평가하지 않습니다.');
   return { query: { status: { option: 'online' }, ...(item.name ? { name: item.name } : {}), type: item.type,

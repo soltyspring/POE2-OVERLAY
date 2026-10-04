@@ -33,17 +33,17 @@ async function scan() {
     send('status', '한국어 사전·시세 불러오는 중…');
     const data = await market.load(scanLeague);
     const rows = scanLines(lines, data.catalog, data.prices);
-    const uniques = rows.filter(row => row.kind === 'unique' || (row.kind === 'candidate' && row.type));
+    const uniques = rows.filter(row => row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
     const byName = new Map();
     for (const row of uniques) {
       const candidate = row.kind === 'candidate';
-      const searchKey = candidate ? `base:${row.type}` : `name:${row.uniqueName}:${row.type}`;
-      if (!byName.has(searchKey) && byName.size >= 5) { row.status = '이번 스캔 고유 검색 5종 한도 · 복사 후 조회'; continue; }
+      const searchKey = row.kind === 'gem' ? `gem:${row.type}:${row.level}` : candidate ? `base:${row.type}` : `name:${row.uniqueName}:${row.type}`;
+      if (!byName.has(searchKey) && byName.size >= 5) { row.status = '이번 스캔 장비·젬 검색 5종 한도 · 복사 후 조회'; continue; }
       try {
-        send('status', candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
+        send('status', row.kind === 'gem' ? `레벨 ${row.level} 젬 최저 매물 조회: ${row.type}…` : candidate ? `고유 후보 최저 매물 조회: ${row.type}…` : `고유 이름 시세 조회: ${row.uniqueName}…`);
         let result = byName.get(searchKey);
         if (!result) {
-          result = await market.search(scanLeague, tradeQuery({ name: candidate ? null : row.uniqueName, type: row.type, rarity: '고유', filters: [] }), data.prices);
+          result = await market.search(scanLeague, tradeQuery({ kind:row.kind, level:row.level, name: candidate ? null : row.uniqueName, type: row.type, rarity: '고유', filters: [] }), data.prices);
           byName.set(searchKey, result);
         }
         applyGearPrices(row, result);

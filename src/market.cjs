@@ -35,6 +35,10 @@ class Market {
     const staticData = await this.cached('static', `${BASE}/api/trade2/data/static`, 86400000);
     const items = await this.cached('items', `${BASE}/api/trade2/data/items`, 86400000);
     const catalog = staticData.result.flatMap(group => group.entries.map(e => ({ id: e.id, name: e.text, kind: 'commodity', category: group.id })));
+    catalog.push({id:'reward:verisium-pile',name:'베리시움 더미',kind:'unpriced'});
+    for (const group of items.result) if (group.id === 'gem') for (const e of group.entries) {
+      if (e.type) catalog.push({id:`gem:${e.type}`,name:e.type,type:e.type,kind:'gem'});
+    }
     for (const group of items.result) for (const e of group.entries) if (e.name) {
       catalog.push({ id: `${e.name}:${e.type}`, name: e.name, uniqueName: e.name, type: e.type, kind: 'unique' });
       catalog.push({ id: `${e.name}:${e.type}:base`, name: e.type, uniqueName: e.name, type: e.type, kind: 'candidate' });
