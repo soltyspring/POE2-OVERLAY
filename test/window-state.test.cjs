@@ -29,3 +29,16 @@ test('최소화 복구와 닫힌 창에 대한 비동기 완료를 처리한다'
   window.destroyed = true; const count = window.calls.length;
   state.show(); state.pin(); state.toggle(); assert.equal(window.calls.length,count);
 });
+test('캡처 동안만 숨기고 성공·실패 모두 비활성 표시로 복구한다',async()=>{
+  const window=fakeWindow(),state=new WindowState(window);
+  const result=await state.capture(async()=>{assert.equal(window.visible,false);state.show();assert.equal(window.visible,false);return 123;},async()=>{});
+  assert.equal(result,123);assert.equal(window.visible,true);
+  await assert.rejects(state.capture(async()=>{throw Error('capture failed');},async()=>{}),/capture failed/);
+  assert.equal(window.visible,true);assert.equal(state.capturing,false);
+});
+test('캡처 중 사용자 숨김이나 창 종료를 복원으로 덮어쓰지 않는다',async()=>{
+  const window=fakeWindow(),state=new WindowState(window);
+  await state.capture(async()=>state.toggle(),async()=>{});assert.equal(window.visible,false);
+  state.toggle();await state.capture(async()=>{window.destroyed=true;},async()=>{});
+  assert.equal(state.capturing,false);assert.equal(window.calls.at(-1)[0],'hide');
+});

@@ -30,7 +30,7 @@ async function captureImage(mode) {
     const display = screen.getDisplayNearestPoint(cursor);
     const nativeWidth=display.size.width*display.scaleFactor,nativeHeight=display.size.height*display.scaleFactor;
     const captureScale=Math.min(1,2400/nativeWidth,1350/nativeHeight);
-    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(nativeWidth*captureScale), height: Math.round(nativeHeight*captureScale) },fetchWindowIcons:false });
+    const sources = await windowState.capture(()=>desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(nativeWidth*captureScale), height: Math.round(nativeHeight*captureScale) },fetchWindowIcons:false }));
 
     const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : null);
     if (!source) throw new Error('마우스가 있는 모니터를 찾을 수 없습니다.');
@@ -132,8 +132,8 @@ app.whenReady().then(() => {
   win.on('close',()=>{if(!process.argv.includes('--smoke-test'))saveGeometry(geometryFile,win.getNormalBounds());});
   win.setOpacity(0.94);
   windowState = new WindowState(win);
-  // Windows 10 2004+: exclude our window from capture instead of hiding it on click.
-  win.setContentProtection(true);
+  // Visible to screen sharing; hide only while desktopCapturer takes the frame.
+  win.setContentProtection(false);
   windowState.pin();
   win.on('focus', () => windowState.pin());
   win.on('show', () => windowState.pin());
