@@ -3,6 +3,8 @@
 
 .scan-settings .controls>button{flex:1}
 
-footer{padding-right:18px}.refresh-dot{position:fixed;right:12px;bottom:10px;width:6px;height:6px;border-radius:50%;background:#e36b6b}.refresh-dot.loading{background:#60cf91}
+footer{padding-right:18px}.refresh-dot{position:fixed;right:12px;bottom:10px;width:6px;height:6px;border-radius:50%;background:#8197a8}.refresh-dot.loading{background:#60cf91}
 
 .price>span{display:block;line-height:1.5}.price .divine-price{font-size:11px;font-weight:400;color:#aebbd0}
+
+.refresh-dot.error{background:#e36b6b}

@@ -6,7 +6,7 @@ const {JSDOM}=require('jsdom');
 function setup(){
   const dom=new JSDOM(fs.readFileSync(path.join(__dirname,'../src/index.html'),'utf8'),{runScripts:'outside-only',url:'http://localhost'});
   const events={},opened=[];
-  dom.window.poe={onRows:cb=>events.rows=cb,onAuto:cb=>events.auto=cb,onBusy:cb=>events.busy=cb,onStatus:cb=>events.status=cb,onMetrics:cb=>events.metrics=cb,
+  dom.window.poe={onHealth:cb=>events.health=cb,onRows:cb=>events.rows=cb,onAuto:cb=>events.auto=cb,onBusy:cb=>events.busy=cb,onStatus:cb=>events.status=cb,onMetrics:cb=>events.metrics=cb,
     auto:async()=>{},options:async()=>{},league:async()=>{},scan:async()=>{},item:async()=>{},open:async url=>opened.push(url)};
   dom.window.eval(fs.readFileSync(path.join(__dirname,'../src/price-format.js'),'utf8'));
   dom.window.eval(fs.readFileSync(path.join(__dirname,'../src/renderer.js'),'utf8'));
@@ -40,6 +40,6 @@ test('두 캡처 버튼만 제공하고 조회 중 잠근다',async()=>{
   const {dom,events,document}=setup();
   assert.equal(document.getElementById('league'),null);assert.equal(document.getElementById('auto'),null);
   events.busy(true);assert.equal(document.getElementById('activity').classList.contains('loading'),true);assert.equal(document.getElementById('activity').getAttribute('aria-label'),'갱신 중');assert.equal(document.getElementById('meta'),null);assert.equal(document.getElementById('scan').disabled,true);assert.equal(document.getElementById('mouse').disabled,true);
-  events.busy(false);assert.equal(document.getElementById('activity').classList.contains('loading'),false);assert.equal(document.getElementById('activity').getAttribute('aria-label'),'대기 중');const modes=[];dom.window.poe.scan=async mode=>modes.push(mode);
+  events.health('error');assert.equal(document.getElementById('activity').classList.contains('error'),true);events.health('ready');assert.equal(document.getElementById('activity').classList.contains('error'),false);events.busy(false);assert.equal(document.getElementById('activity').classList.contains('loading'),false);assert.equal(document.getElementById('activity').getAttribute('aria-label'),'대기 중');const modes=[];dom.window.poe.scan=async mode=>modes.push(mode);
   await document.getElementById('scan').onclick();await document.getElementById('mouse').onclick();assert.deepEqual(modes,['full','mouse']);dom.window.close();
 });

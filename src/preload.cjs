@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('poe', {
   item: () => ipcRenderer.invoke('item'), open: url => ipcRenderer.invoke('open', url),
   onStatus: callback => ipcRenderer.on('status', (_event, value) => callback(value)),
   onBusy: callback => ipcRenderer.on('busy', (_event, value) => callback(value)),
+  onHealth: callback => ipcRenderer.on('health',(_event,value)=>callback(value)),
   onMetrics: callback => ipcRenderer.on('metrics',(_event,value)=>callback(value)),
   onRows: callback => ipcRenderer.on('rows', (_event, value) => callback(value))
 });

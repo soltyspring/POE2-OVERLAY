@@ -56,6 +56,17 @@ test('서버 URL은 HTTP/HTTPS만 허용한다',()=>{
   assert.equal(serverUrl('http://127.0.0.1:18000/'),'http://127.0.0.1:18000');
   assert.throws(()=>serverUrl('file:///tmp/db')); assert.throws(()=>serverUrl('https://user:pass@example.com'));
 });
+test('시세 서버가 지연되어도 사전은 먼저 준비되고 같은 사전 요청은 공유한다',async()=>{
+  let releaseServer;
+  const market=new Market({exchangeUrl:'http://localhost',fetch:()=>new Promise(resolve=>releaseServer=()=>resolve({ok:true,json:async()=>snapshot()}))});
+  const requests=[];
+  market.request=async url=>{requests.push(url);return {result:[{id:'Currency',entries:[{id:'exalted',text:'엑잘티드 오브'}]}]};};
+  const pending=market.load('Standard');
+  const catalog=await market.loadCatalog();
+  assert.equal(catalog[0].name,'엑잘티드 오브');assert.equal(requests.length,2);
+  releaseServer();const data=await pending;
+  assert.equal(data.prices.get('exalted'),1);assert.equal(requests.length,2);
+});
 test('실제 HTTP 경로·리그 인코딩과 서버 스냅샷 캐시를 연결한다',async()=>{
   const http=require('node:http');
   let requests=0;

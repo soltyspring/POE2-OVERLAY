@@ -52,32 +52,22 @@ class Market {
   async cached(key, url, ttl) {
     const hit = this.cache.get(key);
     if (hit && Date.now() - hit.time < ttl) return hit.value;
-    const value = await this.request(url);
-    this.cache.set(key, { time: Date.now(), value });
-    return value;
+    this.pendingRequests ??= new Map();
+    if(this.pendingRequests.has(key))return this.pendingRequests.get(key);
+    const pending=this.request(url).then(value=>{this.cache.set(key,{time:Date.now(),value});return value;}).finally(()=>this.pendingRequests.delete(key));
+    this.pendingRequests.set(key,pending);
+    return pending;
   }
   async load(league) {
     if (typeof league !== 'string' || !league.trim() || league.length > 100) throw new Error('리그 이름을 입력하세요.');
+    const catalogPromise=this.loadCatalog();
+    catalogPromise.catch(()=>{});
     let serverData = null, serverError = null;
     if (this.exchangeUrl) {
       try { serverData = await this.loadExchange(league); }
       catch(error) { serverError = `POE2-Exchange 연결/시세 실패: ${error.message} · 기존 시세로 전환`; }
     }
-    const staticData = await this.cached('static', `${BASE}/api/trade2/data/static`, 86400000);
-    const items = await this.cached('items', `${BASE}/api/trade2/data/items`, 86400000);
-    let catalog = this.catalog;
-    if (!catalog || this.catalogStatic !== staticData || this.catalogItems !== items) {
-    catalog = staticData.result.flatMap(group => group.entries.map(e => ({ id: e.id, name: e.text, kind: 'commodity', category: group.id })));
-    catalog.push({id:'reward:verisium-pile',name:'베리시움 더미',kind:'unpriced'});
-    for (const group of items.result) if (group.id === 'gem') for (const e of group.entries) {
-      if (e.type) catalog.push({id:`gem:${e.type}`,name:e.type,type:e.type,kind:'gem'});
-    }
-    for (const group of items.result) for (const e of group.entries) if (e.name) {
-      catalog.push({ id: `${e.name}:${e.type}`, name: e.name, uniqueName: e.name, type: e.type, kind: 'unique' });
-      catalog.push({ id: `${e.name}:${e.type}:base`, name: e.type, uniqueName: e.name, type: e.type, kind: 'candidate' });
-    }
-    this.catalog = catalog; this.catalogStatic=staticData;this.catalogItems=items;
-    }
+    const catalog = await catalogPromise;
     if (serverData) {
       // Prefer the official localized catalog; append server-only exact names.
       const names = new Set(catalog.map(item=>item.name));
@@ -104,6 +94,24 @@ class Market {
       } catch (error) { warnings.push(`${category}: ${error.message}`); }
     }
     return { catalog, prices, warnings, priceSource:'poe.ninja 직접 조회', updatedAt: Number.isFinite(updatedAt) ? new Date(updatedAt).toISOString() : null };
+  }
+  async loadCatalog() {
+    const staticData = await this.cached('static', `${BASE}/api/trade2/data/static`, 86400000);
+    const items = await this.cached('items', `${BASE}/api/trade2/data/items`, 86400000);
+    let catalog = this.catalog;
+    if (!catalog || this.catalogStatic !== staticData || this.catalogItems !== items) {
+    catalog = staticData.result.flatMap(group => group.entries.map(e => ({ id: e.id, name: e.text, kind: 'commodity', category: group.id })));
+    catalog.push({id:'reward:verisium-pile',name:'베리시움 더미',kind:'unpriced'});
+    for (const group of items.result) if (group.id === 'gem') for (const e of group.entries) {
+      if (e.type) catalog.push({id:`gem:${e.type}`,name:e.type,type:e.type,kind:'gem'});
+    }
+    for (const group of items.result) for (const e of group.entries) if (e.name) {
+      catalog.push({ id: `${e.name}:${e.type}`, name: e.name, uniqueName: e.name, type: e.type, kind: 'unique' });
+      catalog.push({ id: `${e.name}:${e.type}:base`, name: e.type, uniqueName: e.name, type: e.type, kind: 'candidate' });
+    }
+    this.catalog = catalog; this.catalogStatic=staticData;this.catalogItems=items;
+    }
+    return catalog;
   }
   async stats() { return (await this.cached('stats', `${BASE}/api/trade2/data/stats`, 86400000)).result.flatMap(g => g.entries); }
   async search(league, query, exchangeRates = new Map([['exalted', 1]])) {

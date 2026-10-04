@@ -17,9 +17,16 @@ let lastHash=null,lastOcr=null;
 let lastRowsSignature=null;
 function send(event, value) { if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) win.webContents.send(event, value); }
 function setBusy(value) { busy = value; send('busy', value); }
+function publishRows(rows,data) {
+  const divineEx=data.prices.get('divine');
+  const payload={rows:rows.map(row=>({...row,totalDivine:Number.isFinite(divineEx)&&divineEx>0&&row.totalEx!==null?row.totalEx/divineEx:null})),updatedAt:data.updatedAt,priceSource:data.priceSource,league,warnings:data.warnings};
+  const signature=JSON.stringify(payload);
+  if(signature!==lastRowsSignature){lastRowsSignature=signature;send('rows',payload);}
+}
 async function scan(mode = 'full') {
   if (busy) { send('status', '현재 조회가 끝난 뒤 다시 시도하세요.'); return; }
   setBusy(true);
+  send('health','loading');
   const scanLeague = league;
   const started=Date.now();
   let folder;
@@ -49,20 +56,26 @@ async function scan(mode = 'full') {
     windowState.show();
     send('status', '아이템 이름 인식·시세 불러오는 중…');
     const ocrStarted=Date.now();
-    const [recognized,data]=await Promise.all([reused ? Promise.resolve(lastOcr) : ocr.recognize(image),market.loadQuick(scanLeague)]);
+    const dataPromise=market.loadQuick(scanLeague);dataPromise.catch(()=>{});
+    let resolvedData;dataPromise.then(data=>{resolvedData=data;},()=>{});
+    const [recognized,catalog]=await Promise.all([reused ? Promise.resolve(lastOcr) : ocr.recognize(image),market.loadCatalog()]);
+    const lines=recognized.lines.map(line=>({...line,x:line.x+region.x,y:line.y+region.y}));
+    const firstResultMs=Date.now()-started;
+    if(!resolvedData){
+      const preview=scanLines(lines,catalog,new Map());
+      for(const row of preview)row.status='가격 조회 중…';
+      publishRows(preview,{prices:new Map(),warnings:[],updatedAt:null});
+      send('status','아이템 인식 완료 · 가격 조회 중…');
+    }
+    const data=await dataPromise;
     const recognizeAndPriceMs=Date.now()-ocrStarted;
     lastHash=hash;lastOcr=recognized;
-    const lines=recognized.lines.map(line=>({...line,x:line.x+region.x,y:line.y+region.y}));
     const rows = scanLines(lines, data.catalog, data.prices);
     const emit=()=>{
       rows.sort((a,b)=>(b.totalEx??-1)-(a.totalEx??-1));
-      const divineEx=data.prices.get('divine');
-      const payload={rows:rows.map(row=>({...row,totalDivine:Number.isFinite(divineEx)&&divineEx>0&&row.totalEx!==null?row.totalEx/divineEx:null})),updatedAt:data.updatedAt,priceSource:data.priceSource,league:scanLeague,warnings:data.warnings};
-      const signature=JSON.stringify(payload);
-      if(signature!==lastRowsSignature){lastRowsSignature=signature;send('rows',payload);}
+      publishRows(rows,data);
     };
     emit();
-    const firstResultMs=Date.now()-started;
     const uniques = rows.filter(row => row.kind === 'unique' || (row.kind === 'candidate' && row.type) || (row.kind === 'gem' && row.level));
     const byName = new Map();
     for (const row of uniques) {
@@ -86,7 +99,8 @@ async function scan(mode = 'full') {
     windowState.show();
     send('metrics',{...recognized.metrics,reused:!!reused,captureMs,recognizeAndPriceMs,firstResultMs,totalMs:Date.now()-started});
     send('status', `갱신 완료 · ${Date.now()-started}ms${reused?' · 같은 화면, 인식 재사용':''}`);
-  } catch (error) { send('status', error.message); windowState?.show(); }
+    send('health','ready');
+  } catch (error) { send('health','error');send('status', error.message); windowState?.show(); }
   finally {
     try { if (folder) await fs.rm(folder, { recursive: true, force: true }); }
     catch (error) { console.error('Temporary capture cleanup failed:', error.message); }

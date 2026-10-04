@@ -1,6 +1,7 @@
 const el = id => document.getElementById(id);
 const money = formatPrice;
-window.poe.onBusy(busy => { for (const id of ['scan', 'mouse', 'item']) el(id).disabled = busy;const dot=el('activity');dot.classList.toggle('loading',busy);dot.setAttribute('aria-label',busy?'갱신 중':'대기 중');dot.title=busy?'갱신 중':'대기 중'; });
+window.poe.onBusy(busy => { for (const id of ['scan', 'mouse', 'item']) el(id).disabled = busy;const dot=el('activity');dot.classList.toggle('loading',busy);if(busy)dot.classList.remove('error');dot.title=busy?'갱신 중':dot.classList.contains('error')?'조회 실패':'대기 중';dot.setAttribute('aria-label',dot.title); });
+window.poe.onHealth(state=>{const dot=el('activity');dot.classList.toggle('loading',state==='loading');dot.classList.toggle('error',state==='error');dot.title=state==='error'?'조회 실패':state==='loading'?'갱신 중':'대기 중';dot.setAttribute('aria-label',dot.title);});
 window.poe.onStatus(text => { el('status').textContent = text; });
 window.poe.onMetrics(data=>{el('metrics').textContent=`첫 결과 ${data.firstResultMs}ms · 전체 ${data.totalMs}ms\n캡처 ${data.captureMs}ms · 인식·시세 ${data.recognizeAndPriceMs}ms\n${data.engine} · ${data.reused?'같은 화면 · OCR 생략':'OCR '+data.ocrMs+'ms'} · OCR 워커 ${data.rssMB}MB\n앱 전체 또는 게임의 자원 사용량은 포함하지 않습니다.`;});
 let currentData=null;
