@@ -1,6 +1,10 @@
 const normalize = value => value.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
 
 function quantity(text) {
+  // Windows OCR reads this reward menu's 1x as lx or 1)(.
+  // Only repair a leading quantity marker; item names remain exact matches.
+  const repaired = text.match(/^\s*(\d+|[lI])\s*(?:[x×]|\)\s*\()\s*(.+)$/i);
+  if (repaired) return { name: repaired[2].trim(), count: /^\d+$/.test(repaired[1]) ? Number(repaired[1]) : 1, explicit: true };
   const m = text.match(/^\s*(\d+)\s*[x×]\s*(.+)$/i) || text.match(/^\s*(.+?)\s*[x×]\s*(\d+)\s*$/i);
   if (!m) return { name: text.trim(), count: 1, explicit: false };
   const leading = /^\d+$/.test(m[1]);
