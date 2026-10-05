@@ -128,6 +128,19 @@ async function scan(mode = 'full') {
         fallback.metrics.labelFallback=true;recognized=fallback;
       }
     }
+    if(!reused&&mode==='full'){
+      const original=nativeImage.createFromPath(originalImage),size=original.getSize();
+      const panel=require('./reward-panel.cjs').rewardPanel(original.toBitmap(),size);
+      if(panel){
+        const crop=original.crop(panel),file=path.join(folder,'reward-panel.bmp');
+        await fs.writeFile(file,encodeBitmap(crop.toBitmap(),crop.getSize()));
+        const reward=await ocr.recognize(file);
+        const lines=reward.lines.map(line=>({...line,x:line.x+panel.x,y:line.y+panel.y}));
+        recognized.lines=mergeCurrencies(recognized.lines,lines,catalog,['commodity','unpriced']);
+        recognized.metrics.ocrMs+=reward.metrics.ocrMs;recognized.metrics.cpuMs+=reward.metrics.cpuMs;
+        recognized.metrics.rewardPanel=true;
+      }
+    }
     if(!labelMode&&!reused&&mode==='full'&&region.width>=1200&&scanLines(recognized.lines,catalog,new Map()).length<=3){
       const original=nativeImage.createFromPath(originalImage),size=original.getSize(),pixels=original.toBitmap();
       const boxes=labelRegions(pixels,size);
@@ -144,7 +157,7 @@ async function scan(mode = 'full') {
         }
       }
     }
-    if(!labelMode&&!reused&&mode==='full'&&region.width>=1200&&region.height>=700&&scanLines(recognized.lines,catalog,new Map()).length){
+    if(!recognized.metrics.rewardPanel&&!labelMode&&!reused&&mode==='full'&&region.width>=1200&&region.height>=700&&scanLines(recognized.lines,catalog,new Map()).length){
       const original=await ocr.recognize(originalImage);
       recognized.lines=mergeCurrencies(recognized.lines,original.lines,catalog);
       recognized.metrics.ocrMs+=original.metrics.ocrMs;

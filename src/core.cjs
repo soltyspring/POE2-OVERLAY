@@ -38,6 +38,11 @@ function scanLines(lines, catalog, prices) {
     if(index.has(normalize(quantity(text).name)))return text!==line.text?{...line,text}:line;
     const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥•·\\]+\s*$/,'').replace(/^[-•]+\s*/,'').trim();
     if(index.has(normalize(quantity(corrected).name)))return {...line,text:corrected};
+    const parsed=quantity(corrected);
+    if(parsed.explicit&&!index.has(normalize(parsed.name))){
+      const runes=(index.get(normalize(`${parsed.name} 룬`))||[]).filter(item=>item.kind==='commodity'&&item.category==='Runes');
+      if(runes.length===1)return {...line,text:`${parsed.count}x ${runes[0].name}`};
+    }
     // A single substituted Hangul glyph is recoverable only when a long base
     // name has exactly one dictionary candidate. Never fuzzy-match rare names.
     const fuzzyKey=normalize(corrected);
