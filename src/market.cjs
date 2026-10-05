@@ -34,11 +34,16 @@ class Market {
     this.cache.set(key,{time:Date.now(),value:result});
     return result;
   }
-  request(url, body) {
+  request(url, body, signal) {
     const job = this.tail.then(async () => {
-      await new Promise(resolve => setTimeout(resolve, Math.max(0, this.nextRequest - Date.now())));
+      signal?.throwIfAborted();
+      const wait=Math.max(0,this.nextRequest-Date.now());
+      if(wait>2500)throw new Error(`거래 요청 제한 대기 중 · ${Math.ceil(wait/1000)}초 후 다시 조회하세요.`);
+      if(wait)await new Promise(resolve => setTimeout(resolve,wait));
+      signal?.throwIfAborted();
       this.nextRequest = Date.now() + 1600;
-      const res = await fetch(url, { signal: AbortSignal.timeout(20000), headers: { 'Content-Type': 'application/json', 'User-Agent': 'POE2-OVERLAY/0.1 (+https://github.com/soltyspring/POE2-OVERLAY)' }, ...(body ? { method: 'POST', body: JSON.stringify(body) } : {}) });
+      const timeout=AbortSignal.timeout(20000);
+      const res = await this.fetch(url, { signal: signal?AbortSignal.any([timeout,signal]):timeout, headers: { 'Content-Type': 'application/json', 'User-Agent': 'POE2-OVERLAY/0.1 (+https://github.com/soltyspring/POE2-OVERLAY)' }, ...(body ? { method: 'POST', body: JSON.stringify(body) } : {}) });
       const retry = Number(res.headers.get('retry-after'));
       if (res.status === 429) { this.nextRequest = Date.now() + Math.max(60000, (retry || 0) * 1000); throw new Error('요청 제한: 잠시 후 다시 시도하세요.'); }
       // Respect server-advertised windows; conservatively pause when exhausted.
@@ -49,7 +54,11 @@ class Market {
         limits.forEach((limit, i) => { const [max, window] = limit.split(':').map(Number); const [used, , penalty] = (states[i] || '').split(':').map(Number);
           if (used >= max) this.nextRequest = Math.max(this.nextRequest, Date.now() + Math.max(window, penalty || 0) * 1000); });
       }
-      if (!res.ok) throw new Error(`가격 서버 HTTP ${res.status}. 로그인 또는 서버 상태를 확인하세요.`);
+      if (!res.ok){
+        let detail='';try{const payload=await res.json();detail=typeof payload.error?.message==='string'?payload.error.message.slice(0,250):'';}catch{}
+        const reason=res.status===400?'검색 조건이 올바르지 않습니다. 아이템 베이스·옵션·리그를 확인하세요.':res.status===401||res.status===403?'거래 서버에서 접근을 거부했습니다.': '거래 서버 응답 오류입니다.';
+        throw new Error(`가격 서버 HTTP ${res.status}. ${reason}${detail?' '+detail:''}`);
+      }
       return res.json();
     });
     this.tail = job.catch(() => {});
@@ -136,11 +145,12 @@ class Market {
     return catalog;
   }
   async stats() { return (await this.cached('stats', `${BASE}/api/trade2/data/stats`, 86400000)).result.flatMap(g => g.entries); }
-  async search(league, query, exchangeRates = new Map([['exalted', 1]])) {
+  async search(league, query, exchangeRates = new Map([['exalted', 1]]),signal) {
+    signal?.throwIfAborted();
     const cacheKey = JSON.stringify([league, query]);
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.time < 60000) return cached.value;
-    const data = await this.request(`${BASE}/api/trade2/search/${encodeURIComponent(league)}`, query);
+    const data = await this.request(`${BASE}/api/trade2/search/${encodeURIComponent(league)}`, query,signal);
     if (!data.id || !Array.isArray(data.result)) throw new Error('거래 검색 응답을 확인할 수 없습니다.');
     const url = `https://www.pathofexile.com/trade2/search/${encodeURIComponent(league)}/${encodeURIComponent(data.id)}`;
     if (!data.result.length) {
@@ -148,7 +158,7 @@ class Market {
       this.cache.set(cacheKey,{time:Date.now(),value:result});
       return result;
     }
-    const fetched = await this.request(`${BASE}/api/trade2/fetch/${data.result.slice(0, 10).map(encodeURIComponent).join(',')}?query=${encodeURIComponent(data.id)}`);
+    const fetched = await this.request(`${BASE}/api/trade2/fetch/${data.result.slice(0, 10).map(encodeURIComponent).join(',')}?query=${encodeURIComponent(data.id)}`,undefined,signal);
     const listings = fetched.result.map(r => r?.listing?.price).filter(p => Number.isFinite(p?.amount) && p.amount > 0);
     const prices = listings.filter(p => exchangeRates.has(p.currency)).map(p => p.amount * exchangeRates.get(p.currency)).sort((a,b) => a-b);
     const result = { url, prices, total: data.total, skippedCurrencies: [...new Set(listings.filter(p => !exchangeRates.has(p.currency)).map(p => p.currency))] };
