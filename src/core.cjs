@@ -175,12 +175,18 @@ function parseItem(text, statEntries) {
   const rarity = header[index].split(':')[1].trim();
   const names = header.slice(index + 1).filter(Boolean);
   const unidentified = sections.some(section => section.split('\n').includes('미확인'));
-  const filters = [], unmatched = [];
+  const levelLine = text.match(/^(?:아이템 레벨|Item Level):\s*(\d+)\s*$/mi);
+  const itemLevel = levelLine ? Number(levelLine[1]) : null;
+  const stackLine = text.match(/^(?:중첩 크기|Stack Size):\s*(\d+)(?:\s*\/\s*\d+)?\s*$/mi);
+  const stackSize = stackLine ? Number(stackLine[1]) : 1;
+  const filters = [], unmatched = [], modifierLines = [];
   if (!unidentified) for (const section of sections.slice(1)) {
     let context='explicit';
+    let side=null;
     for (const raw of section.split('\n')) {
     if(/^\{.*\}$/.test(raw)){
       context=/고정 속성/.test(raw)?'implicit':/접두어|접미어/.test(raw)?'explicit':/제작/.test(raw)?'crafted':/인챈트/.test(raw)?'enchant':/룬/.test(raw)?'rune':null;
+      side=/접두어|prefix/i.test(raw)?'prefix':/접미어|suffix/i.test(raw)?'suffix':null;
       continue;
     }
     const marker = raw.match(/\s*\((implicit|enchant|fractured|crafted|rune|desecrated|명시|암시|인챈트)\)\s*$/);
@@ -193,13 +199,22 @@ function parseItem(text, statEntries) {
     // Trade evaluates added damage ranges by their average, not either endpoint.
     // Other modifiers with multiple numbers still require explicit support.
     const damageRange=values.length===2 && /피해 #~# 추가$/.test(template) && values[0]<=values[1];
-    if (matches.length === 1 && (values.length === 1 || damageRange)) {
+    const understood = matches.length === 1 && (values.length === 1 || damageRange);
+    if (group && values.length) modifierLines.push({
+      text: line,
+      group,
+      side,
+      statId: understood ? matches[0].id : null,
+      values,
+      damageRange: understood && damageRange
+    });
+    if (understood) {
       const value=damageRange?(values[0]+values[1])/2:values[0];
       filters.push({ id: matches[0].id, value: { min: value, max: value }, disabled: false, text: damageRange?`${raw} · 검색 평균 ${value}`:raw });
     } else unmatched.push(raw);
     }
   }
-  return { rarity, displayName: names.length>1?names[0]:null, name: rarity === '고유' ? names[0] : null, type: names.at(-1), unidentified, filters, unmatched };
+  return { rarity, displayName: names.length>1?names[0]:null, name: rarity === '고유' ? names[0] : null, type: names.at(-1), itemLevel, stackSize, unidentified, filters, modifierLines, unmatched };
 }
 
 function tradeQuery(item) {
