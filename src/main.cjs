@@ -13,7 +13,7 @@ const {retryRegions,isolateYellow,padBitmap,mergeRetry}=require('./ocr-retry.cjs
 const {overlayMask,maskBitmap}=require('./capture-mask.cjs');
 const {readCopiedItem}=require('./copied-item.cjs');
 const {searchSale}=require('./sale-search.cjs');
-const {siteItemUrl,applySnapshotPrices}=require('./exchange.cjs');
+const {siteItemUrl}=require('./exchange.cjs');
 const {encodeBitmap,isolateLabels}=require('./ocr-bitmap.cjs');
 const {labelRegions,packLabels,restoreLines}=require('./label-regions.cjs');
 const {FilterProfile}=require('./filter-profile.cjs');
@@ -101,8 +101,7 @@ async function scan(mode = 'full') {
     windowState.show();
     send('status', '아이템 이름 인식·시세 불러오는 중…');
     const ocrStarted=Date.now();
-    const dataPromise=market.loadQuick(scanLeague);dataPromise.catch(()=>{});
-    let resolvedData;dataPromise.then(data=>{resolvedData=data;},()=>{});
+
     const labelMode=process.env.POE_OCR_LABEL_PIPELINE==='1';
     let catalog,recognized;
     if(!labelMode)[recognized,catalog]=await Promise.all([reused?Promise.resolve(lastOcr):ocr.recognize(image),market.loadCatalog()]);
@@ -171,28 +170,29 @@ async function scan(mode = 'full') {
     }
     const lines=recognized.lines.map(line=>({...line,x:line.x+region.x,y:line.y+region.y}));
     const firstResultMs=Date.now()-started;
-    if(!resolvedData){
+    {
       const preview=scanLines(lines,catalog,new Map());
       for(const row of preview)row.status='가격 조회 중…';
       publishRows(preview,{prices:new Map(),warnings:[],updatedAt:null});
       send('status','아이템 인식 완료 · 가격 조회 중…');
     }
-    const data=await dataPromise;
+    const rows=scanLines(lines,catalog,new Map());
+    const data=await market.priceRows(scanLeague,rows,catalog);
     const recognizeAndPriceMs=Date.now()-ocrStarted;
     lastHash=hash;lastOcr=recognized;
-    const rows = scanLines(lines, data.catalog, data.prices);
+
     const emit=()=>{
       rows.sort((a,b)=>(b.totalEx??-1)-(a.totalEx??-1));
       publishRows(rows,data);
     };
     const gearStarted=Date.now();
-    applySnapshotPrices(rows,data);
+
     rows.sort((a, b) => (b.totalEx ?? -1) - (a.totalEx ?? -1));
     emit();
     windowState.show();
     send('metrics',{...recognized.metrics,reused:!!reused,captureMs,recognizeAndPriceMs,firstResultMs,gearSearchMs:Date.now()-gearStarted,totalMs:Date.now()-started});
     send('status', `갱신 완료 · ${Date.now()-started}ms${reused?' · 같은 화면, 인식 재사용':''}`);
-    send('health','ready');
+    send('health',data.warnings.length?'error':'ready');
   } catch (error) { send('health','error');send('status', error.message); windowState?.show(); }
   finally {
     try { if (folder) await fs.rm(folder, { recursive: true, force: true }); }
@@ -228,7 +228,7 @@ app.whenReady().then(() => {
   win.webContents.on('did-finish-load', () => {lastRowsSignature=null;send('busy', busy);});
   win.loadFile(path.join(__dirname, 'index.html'));
   // Warm dictionaries and prices before the first hotkey without capturing the screen.
-  if(!process.argv.includes('--smoke-test'))market.loadQuick(league).catch(error=>console.error('Price preload:',error.message));
+  if(!process.argv.includes('--smoke-test'))market.loadCatalog().catch(error=>console.error('Dictionary preload:',error.message));
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
   const full = globalShortcut.register('F6', () => scan('full'));

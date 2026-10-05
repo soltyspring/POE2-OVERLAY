@@ -8,6 +8,31 @@ function compactDictionary(key,value) {
   return {result:value.result.map(group=>({id:group.id,entries:group.entries.map(entry=>key==='items'?{name:entry.name,type:entry.type}:{id:entry.id,text:entry.text})}))};
 }
 class Market {
+  async priceRows(league,rows,catalog){
+    const {prepareBatch,applyBatch}=require('./overlay-prices.cjs');
+    if(!this.exchangeUrl)throw new Error('일괄 시세 서버 주소가 없습니다.');
+    const batch=prepareBatch(rows,catalog),body=JSON.stringify({league,items:batch.items});
+    this.overlayCache??=new Map();this.overlayPending??=new Map();
+    const cached=this.overlayCache.get(body);
+    let payload=cached&&Date.now()-cached.time<60000?cached.payload:null;
+    if(!payload){
+      let pending=this.overlayPending.get(body);
+      if(!pending){
+        pending=(async()=>{
+          const response=await this.fetch(`${this.exchangeUrl}/api/overlay/prices`,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body,signal:AbortSignal.timeout(8000)});
+          if(!response.ok)throw new Error(`일괄 시세 서버 HTTP ${response.status}`);
+          const value=await response.json();
+          if(!value.items||!value.rates)throw new Error('일괄 시세 서버 응답 구조를 확인하세요.');
+          this.overlayCache.set(body,{time:Date.now(),payload:value});
+          while(this.overlayCache.size>16)this.overlayCache.delete(this.overlayCache.keys().next().value);
+          return value;
+        })().finally(()=>this.overlayPending.delete(body));
+        this.overlayPending.set(body,pending);
+      }
+      payload=await pending;
+    }
+    return applyBatch(rows,batch,payload);
+  }
   async loadQuick(league) {
     this.snapshots ??= new Map(); this.loads ??= new Map();
     const hit=this.snapshots.get(league);
