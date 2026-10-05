@@ -1,6 +1,6 @@
 {
   "name": "poe2-overlay",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Korean PoE2 screen loot scanner prototype",
   "main": "src/main.cjs",
@@ -35,7 +35,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
