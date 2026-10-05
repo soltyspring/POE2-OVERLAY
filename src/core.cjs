@@ -26,6 +26,8 @@ function quantity(text) {
 }
 
 function scanLines(lines, catalog, prices) {
+  const {cleanLabelName}=require('./label-name.cjs');
+  lines=lines.map(line=>({...line,...cleanLabelName(line.text,catalog)}));
   const rows = [];
   const seen = new Set();
   const index = catalogIndex(catalog);
@@ -34,8 +36,27 @@ function scanLines(lines, catalog, prices) {
   lines=lines.map(line=>{
     const text=line.text.replace(/\s*[（(][A-Za-z][A-Za-z0-9 '\u2019-]*[）)]\s*$/,'').trim();
     if(index.has(normalize(quantity(text).name)))return text!==line.text?{...line,text}:line;
-    const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥•·]+\s*$/,'').replace(/^[-•]+\s*/,'').trim();
+    const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥•·\\]+\s*$/,'').replace(/^[-•]+\s*/,'').trim();
     if(index.has(normalize(quantity(corrected).name)))return {...line,text:corrected};
+    const parsed=quantity(corrected);
+    if(parsed.explicit&&!index.has(normalize(parsed.name))){
+      const runes=(index.get(normalize(`${parsed.name} 룬`))||[]).filter(item=>item.kind==='commodity'&&item.category==='Runes');
+      if(runes.length===1)return {...line,text:`${parsed.count}x ${runes[0].name}`};
+    }
+    // A single substituted Hangul glyph is recoverable only when a long base
+    // name has exactly one dictionary candidate. Never fuzzy-match rare names.
+    const fuzzyKey=normalize(corrected);
+    if(/^[가-힣]{5,}$/.test(fuzzyKey)){
+      const candidates=[];
+      for(const [key,entries] of index){
+        if(key.length!==fuzzyKey.length||!entries.every(e=>['base','candidate'].includes(e.kind)))continue;
+        let differences=0;
+        for(let i=0;i<key.length&&differences<=1;i++)if(key[i]!==fuzzyKey[i])differences++;
+        if(differences===1)candidates.push(entries[0].name);
+        if(candidates.length>1)break;
+      }
+      if(candidates.length===1)return {...line,text:candidates[0]};
+    }
     const noLeadingNoise=corrected.replace(/^[\d\s•/.,]+/,'').trim();
     if(noLeadingNoise && !quantity(corrected).explicit && index.has(normalize(noLeadingNoise)))return {...line,text:noLeadingNoise};
     const withoutTier=corrected.replace(/\s*\(\d+등급\)\s*$/,'').trim();
@@ -61,6 +82,7 @@ function scanLines(lines, catalog, prices) {
     const names=(index.get(normalize(quantity(line.text).name))||[]).filter(item=>item.kind==='unique'&&item.type);
     const options=[];
     for(const type of new Set(names.map(item=>item.type)))for(const base of byText.get(normalize(type))||[]){
+      if(line.regionId!==undefined&&base.regionId!==line.regionId)continue;
       const dy=base.y-line.y,dx=Math.abs(base.x-line.x);
       if(!consumed.has(base)&&dy>=8&&dy<=80&&dx<=180)options.push({base,type,distance:dy+dx*.1});
     }
@@ -75,7 +97,7 @@ function scanLines(lines, catalog, prices) {
     const entries=index.get(normalize(quantity(base.text).name))||[];
     if(!entries.length||!entries.every(e=>['candidate','base'].includes(e.kind)))continue;
     const types=new Set(entries.map(e=>e.type));if(types.size!==1)continue;
-    const above=lines.filter(line=>!paired.has(line)&&!namedBases.has(line)&&!consumed.has(line)&&base.y-line.y>=8&&base.y-line.y<=60&&Math.abs(base.x-line.x)<=80&&!index.has(normalize(line.text))&&/^[가-힣]+(?:\s+[가-힣]+){1,4}$/.test(line.text.trim())).sort((a,b)=>(base.y-a.y+Math.abs(base.x-a.x)*.1)-(base.y-b.y+Math.abs(base.x-b.x)*.1));
+    const above=lines.filter(line=>(base.regionId===undefined||line.regionId===base.regionId)&&!paired.has(line)&&!namedBases.has(line)&&!consumed.has(line)&&base.y-line.y>=8&&base.y-line.y<=60&&Math.abs(base.x-line.x)<=80&&!index.has(normalize(line.text))&&/^[가-힣]+(?:\s+[가-힣]+){1,4}$/.test(line.text.trim())).sort((a,b)=>(base.y-a.y+Math.abs(base.x-a.x)*.1)-(base.y-b.y+Math.abs(base.x-b.x)*.1));
     if(above.length){namedBases.set(above[0],entries[0].type);consumed.add(base);}
   }
   for (const line of lines) {
@@ -103,7 +125,7 @@ function scanLines(lines, catalog, prices) {
     const item = matches.length === 1 ? matches[0] : null;
     const candidateType = matches.every(m => m.kind === 'candidate' && m.type && m.type === matches[0].type) ? matches[0].type : undefined;
     const unit = item?.kind === 'commodity' ? prices.get(item.id) : undefined;
-    rows.push({ key, name: pairedType?`${q.name} · ${pairedType}`:q.name, count: q.count, x: line.x, y: line.y,
+    rows.push({ key, name: pairedType?`${q.name} · ${pairedType}`:line.displayName||q.name, count: q.count, x: line.x, y: line.y,
       kind: item?.kind || 'candidate', type: item?.type || candidateType, tier:item?.tier, level: gem?.[2] ? Number(gem[2]) : null, uniqueName: item?.uniqueName, candidates: matches.map(m => m.uniqueName || m.name),
       unitEx: Number.isFinite(unit) && unit > 0 ? unit : null,
       totalEx: Number.isFinite(unit) && unit > 0 ? unit * q.count : null,
@@ -153,12 +175,18 @@ function parseItem(text, statEntries) {
   const rarity = header[index].split(':')[1].trim();
   const names = header.slice(index + 1).filter(Boolean);
   const unidentified = sections.some(section => section.split('\n').includes('미확인'));
-  const filters = [], unmatched = [];
+  const levelLine = text.match(/^(?:아이템 레벨|Item Level):\s*(\d+)\s*$/mi);
+  const itemLevel = levelLine ? Number(levelLine[1]) : null;
+  const stackLine = text.match(/^(?:중첩 크기|Stack Size):\s*(\d+)(?:\s*\/\s*\d+)?\s*$/mi);
+  const stackSize = stackLine ? Number(stackLine[1]) : 1;
+  const filters = [], unmatched = [], modifierLines = [];
   if (!unidentified) for (const section of sections.slice(1)) {
     let context='explicit';
+    let side=null;
     for (const raw of section.split('\n')) {
     if(/^\{.*\}$/.test(raw)){
       context=/고정 속성/.test(raw)?'implicit':/접두어|접미어/.test(raw)?'explicit':/제작/.test(raw)?'crafted':/인챈트/.test(raw)?'enchant':/룬/.test(raw)?'rune':null;
+      side=/접두어|prefix/i.test(raw)?'prefix':/접미어|suffix/i.test(raw)?'suffix':null;
       continue;
     }
     const marker = raw.match(/\s*\((implicit|enchant|fractured|crafted|rune|desecrated|명시|암시|인챈트)\)\s*$/);
@@ -171,13 +199,22 @@ function parseItem(text, statEntries) {
     // Trade evaluates added damage ranges by their average, not either endpoint.
     // Other modifiers with multiple numbers still require explicit support.
     const damageRange=values.length===2 && /피해 #~# 추가$/.test(template) && values[0]<=values[1];
-    if (matches.length === 1 && (values.length === 1 || damageRange)) {
+    const understood = matches.length === 1 && (values.length === 1 || damageRange);
+    if (group && values.length) modifierLines.push({
+      text: line,
+      group,
+      side,
+      statId: understood ? matches[0].id : null,
+      values,
+      damageRange: understood && damageRange
+    });
+    if (understood) {
       const value=damageRange?(values[0]+values[1])/2:values[0];
       filters.push({ id: matches[0].id, value: { min: value, max: value }, disabled: false, text: damageRange?`${raw} · 검색 평균 ${value}`:raw });
     } else unmatched.push(raw);
     }
   }
-  return { rarity, name: rarity === '고유' ? names[0] : null, type: names.at(-1), unidentified, filters, unmatched };
+  return { rarity, displayName: names.length>1?names[0]:null, name: rarity === '고유' ? names[0] : null, type: names.at(-1), itemLevel, stackSize, unidentified, filters, modifierLines, unmatched };
 }
 
 function tradeQuery(item) {

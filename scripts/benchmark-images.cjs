@@ -8,6 +8,8 @@ const {scanLines}=require('../src/core.cjs');
 const {encodeBitmap,isolateLabels}=require('../src/ocr-bitmap.cjs');
 const {labelRegions,packLabels,restoreLines}=require('../src/label-regions.cjs');
 const {retryRegions,isolateYellow,padBitmap,mergeRetry}=require('../src/ocr-retry.cjs');
+const {FilterProfile}=require('../src/filter-profile.cjs');
+const {mergeCurrencies}=require('../src/ocr-merge.cjs');
 app.whenReady().then(async()=>{
   const manifest=JSON.parse(await fs.readFile(process.argv[2],'utf8')),output=process.argv[3];
   await fs.mkdir(output,{recursive:true});
@@ -18,18 +20,35 @@ app.whenReady().then(async()=>{
   }
   const market=new Market();market.cacheDirectory=path.join(app.getPath('appData'),'poe2-overlay','dictionary-cache');
   const catalog=await market.loadCatalog(),worker=new OcrWorker(),results=[];
+  const colors=await new FilterProfile(path.join(app.getPath('documents'),'My Games','Path of Exile 2')).load();
   try{for(let i=0;i<manifest.length;i++){
     const entry=manifest[i],started=Date.now();
     const original=nativeImage.createFromPath(entry.file);if(original.isEmpty())throw new Error('Missing image: '+entry.file);
     const size=original.getSize(),bitmap=original.toBitmap();
     // Full screenshots include a visible overlay on the right. Exclude its
     // text when checking game labels; leave the stored original untouched.
-    if(size.width>=1200)for(let y=0;y<size.height;y++)bitmap.fill(0,(y*size.width+Math.floor(size.width*.78))*4,(y+1)*size.width*4);
-    const useRegions=size.width>=1200&&size.height>=700,regions=useRegions?labelRegions(bitmap,size):[];
-    const filtered=useRegions?isolateLabels(bitmap,size):bitmap;
+    if(size.width>=2000)for(let y=0;y<size.height;y++)bitmap.fill(0,(y*size.width+Math.floor(size.width*.78))*4,(y+1)*size.width*4);
+    const useRegions=size.width>=1200&&size.height>=300,regions=useRegions&&process.env.POE_OCR_PACKED==='1'?labelRegions(bitmap,size):[];
+    const filtered=useRegions&&process.env.POE_OCR_RAW!=='1'?(process.env.POE_OCR_BASELINE==='1'?isolateLabels(bitmap):isolateLabels(bitmap,size,colors)):bitmap;
     const packed=process.env.POE_OCR_PACKED==='1'&&useRegions&&regions.every(r=>r.height<=80)?packLabels(filtered,size,regions):null;
     const file=path.join(output,`input-${i}.bmp`);await fs.writeFile(file,encodeBitmap(packed?.buffer||filtered,packed||size));
     let recognized=await worker.recognize(file);
+    if(process.env.POE_OCR_REGION_RETRY==='1'&&useRegions){
+      const boxes=labelRegions(bitmap,size),sheet=packLabels(isolateLabels(bitmap),size,boxes);
+      if(sheet&&sheet.height<=1300){
+        const enlarged=nativeImage.createFromBitmap(sheet.buffer,sheet).resize({width:sheet.width*2,height:sheet.height*2,quality:'best'});
+        const retryFile=path.join(output,`region-${i}.bmp`);await fs.writeFile(retryFile,encodeBitmap(enlarged.toBitmap(),enlarged.getSize()));
+        const retry=await worker.recognize(retryFile);
+        recognized.lines=mergeCurrencies(recognized.lines,restoreLines(retry.lines.map(l=>({...l,x:l.x/2,y:l.y/2,width:l.width/2,height:l.height/2})),sheet.placements),catalog,['commodity','base','candidate']);
+        recognized.metrics.ocrMs+=retry.metrics.ocrMs;recognized.metrics.cpuMs+=retry.metrics.cpuMs;
+      }
+    }
+    if(useRegions&&process.env.POE_OCR_MERGE==='1'){
+      const rawFile=path.join(output,`raw-${i}.bmp`);await fs.writeFile(rawFile,encodeBitmap(bitmap,size));
+      const raw=await worker.recognize(rawFile);
+      recognized.lines=mergeCurrencies(recognized.lines,raw.lines,catalog);
+      recognized.metrics.ocrMs+=raw.metrics.ocrMs;recognized.metrics.cpuMs+=raw.metrics.cpuMs;
+    }
     if(packed){recognized.lines=restoreLines(recognized.lines,packed.placements);
       if(!scanLines(recognized.lines,catalog,new Map()).length){
         const full=path.join(output,`fallback-${i}.bmp`);await fs.writeFile(full,encodeBitmap(filtered,size));

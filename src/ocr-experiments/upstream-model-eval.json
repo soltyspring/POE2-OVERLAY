@@ -1,0 +1,1198 @@
+[
+  {
+    "id": "6d6bc525-f2c9-4b43-aa66-9e73d1860dcb",
+    "scene": "reward",
+    "expected": 6,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "상위 제왕의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 3
+      },
+      {
+        "truth": "상위 카오스 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 3
+      },
+      {
+        "truth": "상위 엑잘티드 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 3
+      },
+      {
+        "truth": "상위 카오스 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "상위 엑잘티드 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "상위 제왕의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "61732f38-2ba4-4110-979a-8db790b8f893",
+    "scene": "reward",
+    "expected": 11,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "마석학 유동체 (19레벨)",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "스킬 레벨 20: 베리시움 현신",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "스킬 레벨 20: 베리시움 동력 공급",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "스킬 레벨 20: 칼구르의 잔류물",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "스킬 레벨 20: 으스스한 기둥",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "스킬 레벨 20: 원통한 망자",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "베리시움 더미",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "보조: 정제의 불길",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "보조: 룬벼림 칼날",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "스킬: 베리시움 현신",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "스킬: 베리시움 동력 공급",
+        "text": "돌",
+        "candidate": null,
+        "confidence": 1.1,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "4049e0cc-a959-49d8-af4c-750a7d328c79",
+    "scene": "tooltip",
+    "expected": 1,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "경로석 (15등급)",
+        "text": "총h",
+        "candidate": null,
+        "confidence": 2.4,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "ca154c59-873b-41ca-a409-552cf13e5cff",
+    "scene": "tooltip",
+    "expected": 1,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "키메라의 선회 · 루비 반지",
+        "text": "총",
+        "candidate": null,
+        "confidence": 5.3,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "f81a32f9-c87e-4df5-a6c3-70d214bf16b8",
+    "scene": "ground",
+    "expected": 3,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "폭풍 눈 · 균열 반지",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "복수의 눈 · 에메랄드 반지",
+        "text": "g캐",
+        "candidate": null,
+        "confidence": 1.1,
+        "count": 1
+      },
+      {
+        "truth": "거대한 유지 · 균열 반지",
+        "text": "0",
+        "candidate": null,
+        "confidence": 0.6,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "4ef06be7-06d8-4abb-b3fa-791c0a122275",
+    "scene": "ground",
+    "expected": 3,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "폭풍 눈 · 균열 반지",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "복수의 눈 · 에메랄드 반지",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "거대한 유지 · 균열 반지",
+        "text": "h",
+        "candidate": null,
+        "confidence": 1.1,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "792d2183-148c-4227-b322-95cc2a532a61",
+    "scene": "tooltip",
+    "expected": 1,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "황금 호신부",
+        "text": "총코h추i",
+        "candidate": null,
+        "confidence": 4.9,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "faf63a88-c7c0-414d-b1da-85e73b552c59",
+    "scene": "overlay-negative",
+    "expected": 0,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": []
+  },
+  {
+    "id": "0f2e78b0-269f-4e08-ac63-33e754322540",
+    "scene": "overlay-negative",
+    "expected": 0,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": []
+  },
+  {
+    "id": "96c210b8-710f-4dc5-b1ad-162f6a3b72d1",
+    "scene": "ground",
+    "expected": 3,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "음산한 석궁",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "감정 주문서",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "흉악한 대헬름",
+        "text": "h",
+        "candidate": null,
+        "confidence": 1.4,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "1876b5f4-8948-4b38-8c56-6d97000a5600",
+    "scene": "ground",
+    "expected": 2,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "조각된 타지",
+        "text": "Y투",
+        "candidate": null,
+        "confidence": 3.0,
+        "count": 1
+      },
+      {
+        "truth": "연속 포격 석궁",
+        "text": "hh",
+        "candidate": null,
+        "confidence": 4.7,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "bc43b1ea-a041-44a0-b8f6-e6ea192bee1a",
+    "scene": "ground",
+    "expected": 7,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "황금 사슬옷",
+        "text": "추",
+        "candidate": null,
+        "confidence": 2.3,
+        "count": 1
+      },
+      {
+        "truth": "호전적인 활",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "기사의 미트",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "수호자 육척봉",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "드루이드 왕관",
+        "text": "j",
+        "candidate": null,
+        "confidence": 2.0,
+        "count": 1
+      },
+      {
+        "truth": "관통 석궁",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "엄숙한 대형 망치",
+        "text": "0",
+        "candidate": null,
+        "confidence": 5.8,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "bd1ab23f-b57f-410b-ae2c-2f03e03600b4",
+    "scene": "ground",
+    "expected": 7,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "황금 사슬옷",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "호전적인 활",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "기사의 미트",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "수호자 육척봉",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "드루이드 왕관",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "관통 석궁",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "엄숙한 대형 망치",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "9845b31c-4676-4735-a8d3-f072b26fa5f9",
+    "scene": "ground",
+    "expected": 3,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "검은불 석궁",
+        "text": "를",
+        "candidate": null,
+        "confidence": 2.4,
+        "count": 1
+      },
+      {
+        "truth": "험한 눈빛의 문양 방패",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "극한의 생명력 플라스크",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "1aab0089-8170-4c92-b145-c7ff1123925d",
+    "scene": "ground",
+    "expected": 3,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "검은불 석궁",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "험한 눈빛의 문양 방패",
+        "text": "꽃",
+        "candidate": null,
+        "confidence": 3.6,
+        "count": 1
+      },
+      {
+        "truth": "극한의 생명력 플라스크",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "accd8045-8af4-4380-886f-128b887fe3b1",
+    "scene": "ground",
+    "expected": 26,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "극한의 생명력 플라스크",
+        "text": "총",
+        "candidate": null,
+        "confidence": 2.5,
+        "count": 1
+      },
+      {
+        "truth": "검은불 석궁",
+        "text": "개",
+        "candidate": null,
+        "confidence": 3.9,
+        "count": 1
+      },
+      {
+        "truth": "험한 눈빛의 문양 방패",
+        "text": "캐",
+        "candidate": null,
+        "confidence": 0.9,
+        "count": 1
+      },
+      {
+        "truth": "대장장이의 숫돌",
+        "text": "케",
+        "candidate": null,
+        "confidence": 1.8,
+        "count": 20
+      },
+      {
+        "truth": "인장 생명의 결실",
+        "text": "h",
+        "candidate": null,
+        "confidence": 1.3,
+        "count": 1
+      },
+      {
+        "truth": "아마겟돈의 구슬 · 별의 목걸이",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "경로석 (15등급)",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "완벽한 쥬얼러 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "마엘스트롬 채찍 · 화려한 허리띠",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "세공사의 프리즘",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 9
+      },
+      {
+        "truth": "개량의 징조",
+        "text": "h",
+        "candidate": null,
+        "confidence": 1.0,
+        "count": 4
+      },
+      {
+        "truth": "진화의 오브",
+        "text": "총",
+        "candidate": null,
+        "confidence": 0.8,
+        "count": 1
+      },
+      {
+        "truth": "진화의 오브",
+        "text": "캐",
+        "candidate": null,
+        "confidence": 0.7,
+        "count": 1
+      },
+      {
+        "truth": "인장 생명의 결실",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "키메라의 선회 · 루비 반지",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "대장장이의 숫돌",
+        "text": "0",
+        "candidate": null,
+        "confidence": 1.0,
+        "count": 10
+      },
+      {
+        "truth": "상위 엑잘티드 오브",
+        "text": "h",
+        "candidate": null,
+        "confidence": 0.8,
+        "count": 1
+      },
+      {
+        "truth": "엑잘티드 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "제왕의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "상위 확장의 오브",
+        "text": "0류",
+        "candidate": null,
+        "confidence": 1.3,
+        "count": 1
+      },
+      {
+        "truth": "상위 진화의 오브",
+        "text": "h",
+        "candidate": null,
+        "confidence": 1.1,
+        "count": 1
+      },
+      {
+        "truth": "용의 파편 · 사파이어",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "진화의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "완벽한 확장의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "방어구 장인의 고철",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 20
+      },
+      {
+        "truth": "풍화된 위기 조각",
+        "text": "칸",
+        "candidate": null,
+        "confidence": 2.4,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "1e74345c-346b-4a21-98d9-af7f4dcdaf3c",
+    "scene": "ground",
+    "expected": 26,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "극한의 생명력 플라스크",
+        "text": "fh",
+        "candidate": null,
+        "confidence": 2.0,
+        "count": 1
+      },
+      {
+        "truth": "검은불 석궁",
+        "text": "헤",
+        "candidate": null,
+        "confidence": 2.9,
+        "count": 1
+      },
+      {
+        "truth": "험한 눈빛의 문양 방패",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "대장장이의 숫돌",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 20
+      },
+      {
+        "truth": "인장 생명의 결실",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "아마겟돈의 구슬 · 별의 목걸이",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "경로석 (15등급)",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "완벽한 쥬얼러 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "마엘스트롬 채찍 · 화려한 허리띠",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "세공사의 프리즘",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 9
+      },
+      {
+        "truth": "개량의 징조",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 4
+      },
+      {
+        "truth": "진화의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "진화의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "인장 생명의 결실",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "키메라의 선회 · 루비 반지",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "대장장이의 숫돌",
+        "text": "개",
+        "candidate": null,
+        "confidence": 1.2,
+        "count": 10
+      },
+      {
+        "truth": "상위 엑잘티드 오브",
+        "text": "개",
+        "candidate": null,
+        "confidence": 0.9,
+        "count": 1
+      },
+      {
+        "truth": "엑잘티드 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "제왕의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "상위 확장의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "상위 진화의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "용의 파편 · 사파이어",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "진화의 오브",
+        "text": "Y개Z",
+        "candidate": null,
+        "confidence": 1.8,
+        "count": 1
+      },
+      {
+        "truth": "완벽한 확장의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "방어구 장인의 고철",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 20
+      },
+      {
+        "truth": "풍화된 위기 조각",
+        "text": "케",
+        "candidate": null,
+        "confidence": 3.1,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "5ffd4ffd-b057-4d72-a123-a03103d97476",
+    "scene": "ground-filter-variants",
+    "expected": 16,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "황혼의 불침번 · 잿빛 지팡이",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "미가공 스킬 젬",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "미가공 보조 젬",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "확장의 오브",
+        "text": "개",
+        "candidate": null,
+        "confidence": 1.1,
+        "count": 1
+      },
+      {
+        "truth": "사막 룬",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "엑잘티드 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "영감 룬",
+        "text": "f",
+        "candidate": null,
+        "confidence": 1.9,
+        "count": 1
+      },
+      {
+        "truth": "단지 유물 - 가시",
+        "text": "껍",
+        "candidate": null,
+        "confidence": 0.6,
+        "count": 1
+      },
+      {
+        "truth": "황혼의 불침번 · 잿빛 지팡이",
+        "text": "총",
+        "candidate": null,
+        "confidence": 0.9,
+        "count": 1
+      },
+      {
+        "truth": "미가공 스킬 젬",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "미가공 보조 젬",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "확장의 오브",
+        "text": "h총",
+        "candidate": null,
+        "confidence": 1.4,
+        "count": 1
+      },
+      {
+        "truth": "사막 룬",
+        "text": "f",
+        "candidate": null,
+        "confidence": 1.0,
+        "count": 1
+      },
+      {
+        "truth": "엑잘티드 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "영감 룬",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "단지 유물 - 가시",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "cdf295e7-db11-4235-9827-84cdc49992d5",
+    "scene": "ground-dense-small",
+    "expected": 25,
+    "matched": 0,
+    "countCorrect": 0,
+    "exact": 0,
+    "misses": [
+      {
+        "truth": "바알 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "경로석 (15등급)",
+        "text": "총동",
+        "candidate": null,
+        "confidence": 1.3,
+        "count": 1
+      },
+      {
+        "truth": "소멸의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "기회의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "진 바리야",
+        "text": "h",
+        "candidate": null,
+        "confidence": 2.0,
+        "count": 1
+      },
+      {
+        "truth": "도마뱀비늘 장화",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "연금술의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "전문 이중시위 활",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "카오스 오브",
+        "text": "0",
+        "candidate": null,
+        "confidence": 2.8,
+        "count": 1
+      },
+      {
+        "truth": "미가공 스킬 젬",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "제왕의 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "상위 쥬얼러 오브",
+        "text": "개",
+        "candidate": null,
+        "confidence": 1.2,
+        "count": 1
+      },
+      {
+        "truth": "선도자 서판",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "경로석 (13등급)",
+        "text": "Y",
+        "candidate": null,
+        "confidence": 1.5,
+        "count": 1
+      },
+      {
+        "truth": "철 룬",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "세공사의 프리즘",
+        "text": "개",
+        "candidate": null,
+        "confidence": 2.2,
+        "count": 1
+      },
+      {
+        "truth": "경로석 (14등급)",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "신성한 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "엑잘티드 오브",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "상급 극한의 마나 플라스크",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "복제된 영토 파편",
+        "text": "통",
+        "candidate": null,
+        "confidence": 1.2,
+        "count": 1
+      },
+      {
+        "truth": "격퇴자의 지식의 서 IV",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      },
+      {
+        "truth": "상위 강화의 에센스",
+        "text": "h",
+        "candidate": null,
+        "confidence": 0.9,
+        "count": 1
+      },
+      {
+        "truth": "성배 단 유물",
+        "text": "f",
+        "candidate": null,
+        "confidence": 2.3,
+        "count": 1
+      },
+      {
+        "truth": "정제된 철망",
+        "text": "",
+        "candidate": null,
+        "confidence": 0.0,
+        "count": 1
+      }
+    ]
+  }
+]

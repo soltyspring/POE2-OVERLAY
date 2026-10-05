@@ -58,6 +58,9 @@ select{font-size:12px;padding:7px 9px;min-height:34px;background:var(--surface)}
 .panel[open] summary::after{content:'−'}
 .panel summary small{display:block;margin-top:4px;color:var(--muted);font-size:11px;font-weight:400}
 .panel-body{padding:4px 0 0}
+.tracker-controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.tracker-controls button{flex:1;min-width:105px}
+#tracker-count{font-size:11px!important;color:var(--subtle)!important}
 .panel p{font-size:12px;line-height:1.85;color:var(--muted);margin:10px 0}
 .panel p kbd{font-size:10px;padding:1px 3px}
 .sales-panel button{width:100%;margin-top:3px}
@@ -70,6 +73,10 @@ select{font-size:12px;padding:7px 9px;min-height:34px;background:var(--surface)}
 .sale-range{display:flex;flex-direction:column;gap:5px;padding:10px 0 12px;border-bottom:1px solid var(--border)}
 .sale-range>span{font-size:11px;color:var(--muted)}
 .sale-range>strong{font-size:18px;font-weight:650;color:var(--gold)}
+.craft-inspection{margin:12px 0;padding:10px;border:1px solid #454c57;border-radius:7px;background:#191c20}
+.craft-inspection-title{font-size:12px;color:#dce4ed}
+.craft-inspection p{margin:6px 0 0;font-size:11px;line-height:1.65}
+.craft-inspection p.craft-data-note{color:#e4c990}
 .option-list{margin:12px 0}
 .option-list summary{font-size:12px;font-weight:500;min-height:24px}
 .option-list ul{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:12px;line-height:1.8}

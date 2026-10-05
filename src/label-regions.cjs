@@ -1,15 +1,15 @@
 // Group text-colored pixels next to dark label backgrounds on a coarse grid.
 // Work stays bounded by screen size; no neural detector or extra OCR process.
-function labelRegions(pixels,{width,height}){
+function labelRegions(pixels,{width,height},{adaptive=false}={}){
   const cell=8,cols=Math.ceil(width/cell),rows=Math.ceil(height/cell);
   const counts=new Uint16Array(cols*rows);
   const dark=(x,y)=>{if(x<0||y<0||x>=width||y>=height)return false;const i=(y*width+x)*4;return Math.max(pixels[i],pixels[i+1],pixels[i+2])<55;};
-  const warm=(x,y)=>{if(x<0||y<0||x>=width||y>=height)return false;const i=(y*width+x)*4;return pixels[i+2]>160&&pixels[i+1]>100&&pixels[i]<100;};
+  const brightBackground=(x,y)=>{if(x<0||y<0||x>=width||y>=height)return false;const i=(y*width+x)*4;return adaptive?pixels[i]+pixels[i+1]+pixels[i+2]>390:pixels[i+2]>160&&pixels[i+1]>100&&pixels[i]<100;};
   for(let y=8;y<height-8;y++)for(let x=8;x<width-8;x++){
     const i=(y*width+x)*4,b=pixels[i],g=pixels[i+1],r=pixels[i+2];
     const bright=(b>140&&b>r*1.35&&g>65)||(r>160&&g>140&&b<g*.7)||(r>150&&g>150&&b>150);
-    const darkOnWarm=r<100&&g<90&&b<90&&Number(warm(x-8,y))+Number(warm(x+8,y))+Number(warm(x,y-8))+Number(warm(x,y+8))>=2;
-    if(!darkOnWarm&&(!bright||Number(dark(x-8,y))+Number(dark(x+8,y))+Number(dark(x,y-8))+Number(dark(x,y+8))<1))continue;
+    const darkOnBright=r<100&&g<(adaptive?100:90)&&b<(adaptive?100:90)&&Number(brightBackground(x-8,y))+Number(brightBackground(x+8,y))+Number(brightBackground(x,y-8))+Number(brightBackground(x,y+8))>=2;
+    if(!darkOnBright&&(!bright||Number(dark(x-8,y))+Number(dark(x+8,y))+Number(dark(x,y-8))+Number(dark(x,y+8))<1))continue;
     counts[Math.floor(y/cell)*cols+Math.floor(x/cell)]++;
   }
   const seen=new Uint8Array(counts.length),regions=[];

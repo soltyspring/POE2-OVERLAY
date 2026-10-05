@@ -29,7 +29,25 @@ function parseExchange(payload, league, now = Date.now()) {
   if (excluded) warnings.push(`서버 시세 ${excluded}개: 오래되었거나 유효하지 않아 제외`);
   const oldest = Math.min(...valid.map(row => row.observed_at));
   const siteItems=payload.markets.filter(row=>row.league===league&&typeof row.id==='string'&&typeof row.name==='string').map(row=>({id:row.id,name:row.name,type:row.base_type||null}));
-  return {prices,catalog,siteItems,warnings,updatedAt:new Date(oldest * 1000).toISOString(),priceSource:'POE2-Exchange DB'};
+  const quotes=payload.markets.filter(row=>row.league===league&&typeof row.name==='string'&&Number.isFinite(row.price_divine)&&row.price_divine>0&&Number.isFinite(row.observed_at)&&now/1000-row.observed_at>=-60&&now/1000-row.observed_at<=1800).map(row=>({id:row.id,name:row.name,type:row.base_type||null,unitEx:row.price_divine/reference.price_divine,observedAt:row.observed_at,source:row.source_kind}));
+  return {prices,catalog,siteItems,quotes,warnings,updatedAt:new Date(oldest * 1000).toISOString(),priceSource:'POE2-Exchange DB'};
+}
+function applySnapshotPrices(rows,data){
+  const normalize=value=>(value||'').replace(/\s/g,'');
+  const quotes=data.quotes||[];
+  for(const row of rows){
+    if(row.kind==='commodity'||row.kind==='unpriced')continue;
+    const fullName=row.uniqueName||(['unique','named-gear'].includes(row.kind)?row.name.split(' · ')[0]:null);
+    let matches=fullName?quotes.filter(q=>normalize(q.name)===normalize(fullName)&&normalize(q.type)===normalize(row.type)):[];
+    const namedMatch=matches.length>0;
+    if(!matches.length&&['candidate','named-gear','unique'].includes(row.kind))matches=quotes.filter(q=>q.type&&normalize(q.type)===normalize(row.type)&&q.source==='stash');
+    if(!matches.length){row.status='서버에 최신 비교 시세 없음 · 옵션 복사 후 조회';continue;}
+    row.unitEx=Math.min(...matches.map(q=>q.unitEx));row.totalEx=row.unitEx*row.count;
+    row.totalExMax=Math.max(...matches.map(q=>q.unitEx))*row.count;
+    row.priceKind=namedMatch?'unique-reference':'candidate-reference';
+    row.status=namedMatch?'이름 일치 · 서버 참고 시세 · 옵션 미반영':`${fullName?'이름 시세 없음 · ':''}${row.type} 고유 후보 참고 범위 · 희귀 옵션 미반영`;
+  }
+  return rows;
 }
 function siteItemUrl(row,data,base,league){
   if(!base)return null;
@@ -39,4 +57,4 @@ function siteItemUrl(row,data,base,league){
   if(matches.length!==1)return null;
   const url=new URL(base);url.search=new URLSearchParams({league,item:matches[0].id}).toString();return url.href;
 }
-module.exports = { serverUrl, parseExchange, siteItemUrl };
+module.exports = { serverUrl, parseExchange, siteItemUrl,applySnapshotPrices };

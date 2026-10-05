@@ -6,10 +6,12 @@
   "main": "src/main.cjs",
   "scripts": {
     "start": "electron .",
+    "package:win": "node scripts/package-win.cjs",
     "test": "node --test",
     "check": "node --check src/main.cjs && node --check src/core.cjs && node --check src/market.cjs && node --check src/renderer.js"
   },
   "devDependencies": {
+    "@electron/packager": "20.3.0",
     "electron": "44.5.1",
     "jsdom": "^29.1.1"
   }
