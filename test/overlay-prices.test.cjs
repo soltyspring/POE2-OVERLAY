@@ -25,3 +25,17 @@ test('서버 실패는 명시적으로 전달하고 숨은 전체 목록 요청�
  const market=new Market({exchangeUrl:'https://example.com',fetch:async()=>({ok:false,status:503})});
  await assert.rejects(market.priceRows('Standard',rows(),catalog),/HTTP 503/);
 });
+test('가격 관측이 오래되어도 최근 원천 확인이면 유효하고 확인 시각이 오래되면 제외한다',()=>{
+ const now=Date.now(),payload=response(),batch=prepareBatch(rows(),catalog);
+ for(const q of [payload.rates,payload.items['0'],payload.items['2']]){q.observedAt=now/1000-7200;q.verifiedAt=now/1000-60;}
+ const list=rows(),data=applyBatch(list,batch,payload,now);
+ assert.equal(list[0].totalEx,20);assert.equal(list[2].totalEx,30);
+ assert.equal(data.updatedAt,new Date(payload.rates.verifiedAt*1000).toISOString());
+ payload.items['2'].verifiedAt=now/1000-1801;
+ applyBatch(list,batch,payload,now);assert.equal(list[2].totalEx,null);assert.equal(list[0].totalEx,20);
+ payload.rates.verifiedAt=now/1000-1801;
+ payload.rates.observedAt=now/1000;
+ applyBatch(list,batch,payload,now);assert.equal(list[0].totalEx,null);
+ payload.rates.verifiedAt=now/1000+61;
+ assert.equal(applyBatch(list,batch,payload,now).prices.size,0);
+});

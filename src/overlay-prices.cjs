@@ -1,4 +1,6 @@
 const normalize=value=>(value||'').replace(/\s/g,'');
+const verifiedAt=value=>value.verifiedAt??value.observedAt;
+const fresh=(value,now)=>Number.isFinite(verifiedAt(value))&&now/1000-verifiedAt(value)<=1800&&now/1000-verifiedAt(value)>=-60;
 function prepareBatch(rows,catalog){
   const items=[],refs=new Map(),seen=new Map();
   const add=(name,kind,baseType,id)=>{
@@ -25,10 +27,10 @@ function prepareBatch(rows,catalog){
 function applyBatch(rows,batch,payload,now=Date.now()){
   if(!payload||!payload.items||!payload.rates)throw new Error('일괄 시세 서버 응답 구조를 확인하세요.');
   const prices=new Map(),rate=payload.rates;
-  if(rate.state==='ready'&&Number.isFinite(rate.exaltedPerDivine)&&rate.exaltedPerDivine>0&&now/1000-rate.observedAt<=1800&&now/1000-rate.observedAt>=-60)prices.set('divine',rate.exaltedPerDivine);
+  if(rate.state==='ready'&&Number.isFinite(rate.exaltedPerDivine)&&rate.exaltedPerDivine>0&&fresh(rate,now))prices.set('divine',rate.exaltedPerDivine);
   for(const row of rows){
     row.unitEx=null;row.totalEx=null;delete row.totalExMax;
-    const candidates=(batch.refs.get(row.key)||[]).map(key=>payload.items[key]).filter(q=>q?.state==='ready'&&Number.isFinite(q.priceExalted)&&q.priceExalted>0&&Number.isFinite(q.observedAt)&&now/1000-q.observedAt<=1800&&now/1000-q.observedAt>=-60&&prices.has('divine'));
+    const candidates=(batch.refs.get(row.key)||[]).map(key=>payload.items[key]).filter(q=>q?.state==='ready'&&Number.isFinite(q.priceExalted)&&q.priceExalted>0&&fresh(q,now)&&prices.has('divine'));
     const fullName=row.uniqueName||(['unique','named-gear'].includes(row.kind)?row.name.split(' · ')[0]:row.name);
     const exact=candidates.filter(q=>normalize(q.name)===normalize(fullName));
     const matches=exact.length?exact:candidates;
@@ -39,6 +41,6 @@ function applyBatch(rows,batch,payload,now=Date.now()){
     row.status=row.kind==='commodity'?'참고 시세':exact.length?'이름 일치 · 서버 참고 시세 · 옵션 미반영':`${row.type} 고유 후보 참고 범위 · 희귀 옵션 미반영`;
   }
   const siteItems=batch.items.flatMap(item=>{const q=payload.items[item.key];return q?.id||item.id?[{id:q?.id||item.id,name:item.name,type:item.baseType||null}]:[];});
-  return {prices,siteItems,warnings:prices.has('divine')?[]:['서버 환율이 없거나 오래되어 가격 표시를 보류했습니다.'],updatedAt:Number.isFinite(rate.observedAt)?new Date(rate.observedAt*1000).toISOString():null,priceSource:'POE2-Exchange 일괄 API'};
+  return {prices,siteItems,warnings:prices.has('divine')?[]:['서버 환율이 없거나 오래되어 가격 표시를 보류했습니다.'],updatedAt:Number.isFinite(verifiedAt(rate))?new Date(verifiedAt(rate)*1000).toISOString():null,priceSource:'POE2-Exchange 일괄 API'};
 }
 module.exports={prepareBatch,applyBatch};
