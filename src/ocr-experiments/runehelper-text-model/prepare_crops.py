@@ -4,7 +4,7 @@ import cv2
 from common import WORK
 
 root=Path(__file__).resolve().parents[2]
-truth=json.loads((root.parent.parent/'test/fixtures/ocr-ground-truth.json').read_text(encoding='utf-8'))
+truth=json.loads((root.parent/'test/fixtures/ocr-ground-truth.json').read_text(encoding='utf-8'))
 image_dir=Path(sys.argv[1]) if len(sys.argv)>1 else Path.home()/'AppData/Local/Temp'
 out=WORK/'ko'/'real'
 out.mkdir(parents=True,exist_ok=True)
@@ -26,5 +26,5 @@ for i,entry in enumerate(truth['images']):
   name=f"{entry['id']}_row{j:02d}.png"
   cv2.imwrite(str(out/scene/name),gray)
   label_text=f"{label.get('count',1)}x {label['name']}" if label.get('count',1)>1 else label['name']
-  with open(out/scene/'labels.tsv','a',encoding='utf-8') as f:f.write(f'{name}\\t{label_text}\\n')
+  with open(out/scene/'labels.tsv','a',encoding='utf-8') as f:f.write(f'{name}\t{label_text}\n')
 print('crops ready',sum(1 for _ in out.glob('*/*.png')),'at',out)
