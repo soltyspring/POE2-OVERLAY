@@ -26,6 +26,8 @@ function quantity(text) {
 }
 
 function scanLines(lines, catalog, prices) {
+  const {cleanLabelName}=require('./label-name.cjs');
+  lines=lines.map(line=>({...line,...cleanLabelName(line.text,catalog)}));
   const rows = [];
   const seen = new Set();
   const index = catalogIndex(catalog);
@@ -118,7 +120,7 @@ function scanLines(lines, catalog, prices) {
     const item = matches.length === 1 ? matches[0] : null;
     const candidateType = matches.every(m => m.kind === 'candidate' && m.type && m.type === matches[0].type) ? matches[0].type : undefined;
     const unit = item?.kind === 'commodity' ? prices.get(item.id) : undefined;
-    rows.push({ key, name: pairedType?`${q.name} · ${pairedType}`:q.name, count: q.count, x: line.x, y: line.y,
+    rows.push({ key, name: pairedType?`${q.name} · ${pairedType}`:line.displayName||q.name, count: q.count, x: line.x, y: line.y,
       kind: item?.kind || 'candidate', type: item?.type || candidateType, tier:item?.tier, level: gem?.[2] ? Number(gem[2]) : null, uniqueName: item?.uniqueName, candidates: matches.map(m => m.uniqueName || m.name),
       unitEx: Number.isFinite(unit) && unit > 0 ? unit : null,
       totalEx: Number.isFinite(unit) && unit > 0 ? unit * q.count : null,
