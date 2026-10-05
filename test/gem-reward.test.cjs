@@ -10,3 +10,9 @@ test('룬 보상 목록의 스킬과 보조를 병합하고 레벨별 요청을 
  const batch=prepareBatch(rows,catalog);assert.equal(batch.items.length,4);assert.equal(batch.items[0].level,20);assert.equal(batch.items[3].level,undefined);
  assert.notEqual(batch.refs.get(rows[0].key)[0],batch.refs.get(rows[3].key)[0]);
 });
+test('보상 창의 뇌진탕 표기를 공식 뇌진탕 룬 젬과 유일하게 연결한다',()=>{
+ const catalog=[{name:'뇌진탕 룬',type:'뇌진탕 룬',kind:'gem'}];
+ const rows=scanLines([{text:'보조: 뇌진탕',x:10,y:10}],catalog,new Map());
+ assert.equal(rows.length,1);assert.equal(rows[0].type,'뇌진탕 룬');
+ assert.equal(scanLines([{text:'스킬: 뇌진탕',x:10,y:10}],catalog,new Map()).length,0);
+});

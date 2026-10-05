@@ -113,7 +113,14 @@ function scanLines(lines, catalog, prices) {
       continue;
     }
     const gem = q.name.match(/^(스킬|보조)(?:\s*레벨\s*(\d+))?\s*:\s*(.+)$/);
-    const lookupName = gem ? gem[3].trim() : q.name;
+    let lookupName = gem ? gem[3].trim() : q.name;
+    // Reward rows may omit the support gem's "룬" suffix. Require one exact
+    // gem entry for the complete name; never repair unrelated skill names.
+    if(gem?.[1]==='보조'&&!index.has(normalize(lookupName))){
+      const complete=`${lookupName} 룬`;
+      const entries=(index.get(normalize(complete))||[]).filter(item=>item.kind==='gem');
+      if(entries.length===1)lookupName=complete;
+    }
     if (!Number.isSafeInteger(q.count) || q.count < 1) continue;
     const pairedType=paired.get(line);
     let matches = (index.get(normalize(lookupName)) || []).filter(item => pairedType ? item.kind==='unique'&&item.type===pairedType : gem ? item.kind === 'gem' : item.kind !== 'gem');
