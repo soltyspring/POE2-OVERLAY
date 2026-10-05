@@ -38,7 +38,8 @@ function renderRows() {
       if(row.totalEx===null)record.price.textContent=/조회.*중|조회 대기/.test(row.status)?'조회 중…':'확인 필요';
       else {
         const exalted=document.createElement('span'),divine=document.createElement('span');
-        exalted.textContent=money(row.totalEx)+' 엑잘';divine.textContent=money(row.totalDivine)+' 신성';divine.className='divine-price';
+        const range=Number.isFinite(row.totalExMax)&&row.totalExMax>row.totalEx;
+        exalted.textContent=money(row.totalEx)+(range?' ~ '+money(row.totalExMax):'')+' 엑잘';divine.textContent=money(row.totalDivine)+(range&&Number.isFinite(row.totalDivineMax)?' ~ '+money(row.totalDivineMax):'')+' 신성';divine.className='divine-price';
         if(Number.isFinite(row.totalDivine))divine.title=row.totalDivine.toLocaleString('ko-KR',{maximumFractionDigits:20})+' 신성';
         else divine.title='신성 환산 기준 없음';
         exalted.title=row.totalEx.toLocaleString('ko-KR',{maximumFractionDigits:20})+' 엑잘';
@@ -69,15 +70,17 @@ window.poe.onRows(data => {
 for (const [id,mode] of [['scan','full'],['mouse','mouse']]) el(id).onclick = async () => {try {await window.poe.scan(mode);} catch(error) {el('status').textContent=error.message;}};
 function renderSaleResult(data){
   const container=el('detail');container.replaceChildren();
-  const title=document.createElement('strong');title.className='sale-title';title.textContent=data.item.name||data.item.type;
-  const summary=document.createElement('p');summary.className='sale-summary';summary.textContent=`옵션 ${data.item.filters.length}개 중 ${data.comparison?.required??data.item.filters.length}개 이상 일치 · 복사한 수치 이상 · 비교 매물 ${data.total.toLocaleString('ko-KR')}개`;
+  const title=document.createElement('strong');title.className='sale-title';title.textContent=data.item.displayName?`${data.item.displayName} · ${data.item.type}`:data.item.name||data.item.type;
+  const summary=document.createElement('p');summary.className='sale-summary';summary.textContent=data.comparison?.policy==='priority-and'?`핵심 옵션 ${data.comparison.required}개 모두 일치 · 수치 약 80% 이상 · 비교 매물 ${data.total.toLocaleString('ko-KR')}개`:`옵션 ${data.item.filters.length}개 중 ${data.comparison?.required??data.item.filters.length}개 이상 일치 · 복사한 수치 이상 · 비교 매물 ${data.total.toLocaleString('ko-KR')}개`;
   const range=document.createElement('div');range.className='sale-range';
   const label=document.createElement('span');label.textContent='조회 매물 가격';
   const price=document.createElement('strong');price.textContent=data.prices.length?`${money(data.prices[0])}${data.prices.length>1?' ~ '+money(data.prices.at(-1)):''} 엑잘`:'조건에 맞는 환산 매물이 없습니다.';
   range.append(label,price);container.append(title,summary,range);
-  if(data.comparison?.relaxed){const warning=document.createElement('p');warning.className='selection-warning';warning.textContent='모든 옵션이 일치하는 매물이 없어 조건을 완화했습니다. 일부 옵션만 일치하는 참고 매물이며 내 아이템의 확정 시세가 아닙니다.';container.append(warning);}
+  if(data.nameLookup&&data.nameLookup.state!=='matched'){const note=document.createElement('p');note.className='selection-warning';note.textContent=data.nameLookup.state==='not-in-dictionary'?`‘${data.nameLookup.name}’는 거래 이름 DB에 없어 ${data.item.type} 베이스·옵션으로 비교했습니다.`:`‘${data.nameLookup.name}’ 이름 매물이 없어 ${data.item.type} 베이스·옵션으로 비교했습니다.`;container.append(note);}
+  if(data.comparison?.relaxed){const warning=document.createElement('p');warning.className='selection-warning';warning.textContent='전체 핵심 옵션에 맞는 매물이 없어 우선순위가 높은 옵션만 남겼습니다. 남긴 옵션은 모두 일치하며 참고 매물 가격입니다.';container.append(warning);}
   const addList=(heading,items)=>{const details=document.createElement('details'),headingNode=document.createElement('summary'),list=document.createElement('ul');details.className='option-list';headingNode.textContent=heading;for(const text of items){const li=document.createElement('li');li.textContent=text;list.append(li);}details.append(headingNode,list);container.append(details);};
-  if(data.item.filters.length)addList(data.comparison?.relaxed?'일치 여부를 비교한 옵션':'검색에 포함한 옵션',data.item.filters.map(f=>f.text));
+  if(data.item.filters.length)addList('검색에 포함한 옵션',data.comparison?.selected?data.comparison.selected.map(f=>`${f.text} · 검색 최소 ${f.min}`):data.item.filters.map(f=>f.text));
+  if(data.comparison?.excluded?.length)addList('가격 비교에서 제외한 보조 옵션',data.comparison.excluded);
   if(data.item.unmatched.length){const warning=document.createElement('p');warning.className='selection-warning';warning.textContent=`옵션 ${data.item.unmatched.length}개는 검색에서 제외되었습니다.`;container.append(warning);addList('제외된 옵션 확인',data.item.unmatched);}
   if(data.skippedCurrencies?.length){const warning=document.createElement('p');warning.className='selection-warning';warning.textContent='환율이 없는 매물은 가격 비교에서 제외했습니다.';container.append(warning);}
   const button=document.createElement('button');button.textContent='공식 거래 사이트에서 비교 ↗';button.onclick=()=>window.poe.open(data.url).catch(error=>{el('status').textContent=error.message;});
