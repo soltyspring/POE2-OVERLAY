@@ -1,16 +1,50 @@
 {
   "name": "poe2-overlay",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "description": "Korean PoE2 screen loot scanner prototype",
   "main": "src/main.cjs",
+  "productName": "PoE2 Item Price Overlay",
   "scripts": {
     "start": "electron .",
+    "package:win": "node scripts/package-win.cjs",
+    "package:installer": "electron-builder --win nsis --x64 --publish never",
     "test": "node --test",
     "check": "node --check src/main.cjs && node --check src/core.cjs && node --check src/market.cjs && node --check src/renderer.js"
   },
   "devDependencies": {
+    "@electron/packager": "20.3.0",
     "electron": "44.5.1",
+    "electron-builder": "26.15.3",
     "jsdom": "^29.1.1"
+  },
+  "build": {
+    "appId": "com.soltyspring.poe2overlay",
+    "productName": "PoE2 Item Price Overlay",
+    "asar": false,
+    "directories": {
+      "output": "dist/installer"
+    },
+    "files": [
+      "src/**/*",
+      "scripts/ocr.ps1",
+      "package.json",
+      "!src/ocr-experiments/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

@@ -1,0 +1,36 @@
+name: Windows installer
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm run package:installer
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/installer/*.exe
+          if-no-files-found: error
+      - name: Publish tagged installer
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $installers = @(Get-ChildItem dist/installer/*.exe | ForEach-Object FullName)
+          gh release create $env:GITHUB_REF_NAME @installers --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "PoE2 Overlay $env:GITHUB_REF_NAME" --notes-file docs/INSTALL.ko.md --prerelease
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
