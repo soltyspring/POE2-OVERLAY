@@ -34,8 +34,22 @@ function scanLines(lines, catalog, prices) {
   lines=lines.map(line=>{
     const text=line.text.replace(/\s*[（(][A-Za-z][A-Za-z0-9 '\u2019-]*[）)]\s*$/,'').trim();
     if(index.has(normalize(quantity(text).name)))return text!==line.text?{...line,text}:line;
-    const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥•·]+\s*$/,'').replace(/^[-•]+\s*/,'').trim();
+    const corrected=text.replace(/대엘름/g,'대헬름').replace(/육적봉/g,'육척봉').replace(/[一-龥•·\\]+\s*$/,'').replace(/^[-•]+\s*/,'').trim();
     if(index.has(normalize(quantity(corrected).name)))return {...line,text:corrected};
+    // A single substituted Hangul glyph is recoverable only when a long base
+    // name has exactly one dictionary candidate. Never fuzzy-match rare names.
+    const fuzzyKey=normalize(corrected);
+    if(/^[가-힣]{5,}$/.test(fuzzyKey)){
+      const candidates=[];
+      for(const [key,entries] of index){
+        if(key.length!==fuzzyKey.length||!entries.every(e=>['base','candidate'].includes(e.kind)))continue;
+        let differences=0;
+        for(let i=0;i<key.length&&differences<=1;i++)if(key[i]!==fuzzyKey[i])differences++;
+        if(differences===1)candidates.push(entries[0].name);
+        if(candidates.length>1)break;
+      }
+      if(candidates.length===1)return {...line,text:candidates[0]};
+    }
     const noLeadingNoise=corrected.replace(/^[\d\s•/.,]+/,'').trim();
     if(noLeadingNoise && !quantity(corrected).explicit && index.has(normalize(noLeadingNoise)))return {...line,text:noLeadingNoise};
     const withoutTier=corrected.replace(/\s*\(\d+등급\)\s*$/,'').trim();
@@ -61,6 +75,7 @@ function scanLines(lines, catalog, prices) {
     const names=(index.get(normalize(quantity(line.text).name))||[]).filter(item=>item.kind==='unique'&&item.type);
     const options=[];
     for(const type of new Set(names.map(item=>item.type)))for(const base of byText.get(normalize(type))||[]){
+      if(line.regionId!==undefined&&base.regionId!==line.regionId)continue;
       const dy=base.y-line.y,dx=Math.abs(base.x-line.x);
       if(!consumed.has(base)&&dy>=8&&dy<=80&&dx<=180)options.push({base,type,distance:dy+dx*.1});
     }
@@ -75,7 +90,7 @@ function scanLines(lines, catalog, prices) {
     const entries=index.get(normalize(quantity(base.text).name))||[];
     if(!entries.length||!entries.every(e=>['candidate','base'].includes(e.kind)))continue;
     const types=new Set(entries.map(e=>e.type));if(types.size!==1)continue;
-    const above=lines.filter(line=>!paired.has(line)&&!namedBases.has(line)&&!consumed.has(line)&&base.y-line.y>=8&&base.y-line.y<=60&&Math.abs(base.x-line.x)<=80&&!index.has(normalize(line.text))&&/^[가-힣]+(?:\s+[가-힣]+){1,4}$/.test(line.text.trim())).sort((a,b)=>(base.y-a.y+Math.abs(base.x-a.x)*.1)-(base.y-b.y+Math.abs(base.x-b.x)*.1));
+    const above=lines.filter(line=>(base.regionId===undefined||line.regionId===base.regionId)&&!paired.has(line)&&!namedBases.has(line)&&!consumed.has(line)&&base.y-line.y>=8&&base.y-line.y<=60&&Math.abs(base.x-line.x)<=80&&!index.has(normalize(line.text))&&/^[가-힣]+(?:\s+[가-힣]+){1,4}$/.test(line.text.trim())).sort((a,b)=>(base.y-a.y+Math.abs(base.x-a.x)*.1)-(base.y-b.y+Math.abs(base.x-b.x)*.1));
     if(above.length){namedBases.set(above[0],entries[0].type);consumed.add(base);}
   }
   for (const line of lines) {
@@ -177,7 +192,7 @@ function parseItem(text, statEntries) {
     } else unmatched.push(raw);
     }
   }
-  return { rarity, name: rarity === '고유' ? names[0] : null, type: names.at(-1), unidentified, filters, unmatched };
+  return { rarity, displayName: names.length>1?names[0]:null, name: rarity === '고유' ? names[0] : null, type: names.at(-1), unidentified, filters, unmatched };
 }
 
 function tradeQuery(item) {
