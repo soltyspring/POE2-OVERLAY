@@ -66,16 +66,16 @@ npm start
 4. **F7**: 게임 화면에서 아이템에 마우스를 올려 주변 영역을 캡처합니다. 앱이 게임의 라벨 표시 키를 대신 누르지 않습니다.
 5. 판매 전에는 게임에서 아이템을 **Ctrl+C**로 복사한 후 **복사한 아이템 조회**를 누릅니다.
 
-## 다른 사람에게 Windows 실행본 전달
+## Windows 설치 프로그램 만들기
 
-Windows x64 공유용 폴더와 ZIP을 생성합니다:
+Windows x64 설치 마법사 실행 파일을 생성합니다:
 
 ```powershell
 npm install
-npm run package:win
+npm run package:installer
 ```
 
-ZIP은 `dist/PoE2-Item-Price-Overlay-v0.1.0-win-x64.zip`에 생성됩니다. ZIP 전체를 압축 해제한 뒤 폴더 안의 `PoE2 Item Price Overlay.exe`를 실행합니다. OCR에 필요한 `scripts/ocr.ps1`도 함께 포함되어 있으므로 exe 파일만 따로 옮기지 마세요. Windows 10/11 64비트와 Windows 한국어 OCR 기능이 필요합니다.
+`dist/installer/PoE2 Item Price Overlay Setup 0.1.1.exe`를 실행하면 설치 마법사가 열리고, 사용자가 설치 폴더를 선택할 수 있습니다. 바탕 화면과 시작 메뉴 바로 가기를 만듭니다. 설치된 앱은 Windows 10/11 64비트와 Windows 한국어 OCR 기능이 필요합니다.
 
 ## 보관함 슬롯 가격표
 
@@ -100,7 +100,7 @@ ZIP은 `dist/PoE2-Item-Price-Overlay-v0.1.0-win-x64.zip`에 생성됩니다. ZIP
 
 ## 한계와 후속 작업
 
-실제 게임 화면 인식률은 아직 검증하지 않았습니다. 일반 Windows OCR과 2400×1350 이내 캡처이므로 작은 글씨·4K·HDR·라벨 겹침에서 오독할 수 있습니다. 주황색 영역 분리, 한국어 퍼지 매칭, 툴팁 OCR 옵션 파싱, 설치 프로그램은 후속 작업입니다.
+실제 게임 화면 인식률은 아직 검증하지 않았습니다. 일반 Windows OCR과 2400×1350 이내 캡처이므로 작은 글씨·4K·HDR·라벨 겹침에서 오독할 수 있습니다. 주황색 영역 분리, 한국어 퍼지 매칭, 툴팁 OCR 옵션 파싱은 후속 작업입니다.
 
 공식 검색은 로그인/서버 정책에 따라 실패할 수 있습니다. 로그인 쿠키 저장이나 인증 우회는 없습니다. 현재 온라인 매물 기준이며 즉시 구매 시장 선택 UI는 후속 작업입니다. 희귀 옵션 검색은 DPS·범위값·타락·품질·소켓을 모두 반영하는 완성된 평가기가 아닙니다.
 
