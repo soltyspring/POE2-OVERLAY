@@ -7,6 +7,7 @@ function setup(){
   const dom=new JSDOM(fs.readFileSync(path.join(__dirname,'../src/index.html'),'utf8'),{runScripts:'outside-only',url:'http://localhost'});
   const events={},opened=[];
   dom.window.poe={onHealth:cb=>events.health=cb,onRows:cb=>events.rows=cb,onAuto:cb=>events.auto=cb,onBusy:cb=>events.busy=cb,onStatus:cb=>events.status=cb,onMetrics:cb=>events.metrics=cb,
+    onHotkeys:cb=>events.hotkeys=cb,getHotkeys:()=>({then:cb=>{cb({bindings:{full:'F6',mouse:'F7'},registered:{full:true,mouse:true}});return {catch:()=>{}};}}),onStashState:cb=>events.stash=cb,
     auto:async()=>{},options:async()=>{},league:async()=>{},scan:async()=>{},item:async()=>{},open:async url=>opened.push(url)};
   dom.window.eval(fs.readFileSync(path.join(__dirname,'../src/price-format.js'),'utf8'));
   dom.window.eval(fs.readFileSync(path.join(__dirname,'../src/renderer.js'),'utf8'));
