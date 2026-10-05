@@ -3,18 +3,20 @@ const verifiedAt=value=>value.verifiedAt??value.observedAt;
 const fresh=(value,now)=>Number.isFinite(verifiedAt(value))&&now/1000-verifiedAt(value)<=1800&&now/1000-verifiedAt(value)>=-60;
 function prepareBatch(rows,catalog){
   const items=[],refs=new Map(),seen=new Map();
-  const add=(name,kind,baseType,id)=>{
-    const signature=JSON.stringify([name,kind,baseType,id]);
+  const add=(name,kind,baseType,id,level)=>{
+    const signature=JSON.stringify([name,kind,baseType,id,level]);
     if(seen.has(signature))return seen.get(signature);
     if(items.length>=500)return null;
     const key=String(items.length);seen.set(signature,key);
-    items.push({key,name,kind,...(baseType?{baseType}:{}),...(id?{id}:{})});return key;
+    items.push({key,name,kind,...(baseType?{baseType}:{}),...(id?{id}:{}),...(Number.isInteger(level)?{level}:{})});return key;
   };
   for(const row of rows){
     const keys=[];
     if(row.kind==='commodity'){
       const entry=catalog.find(e=>e.kind==='commodity'&&normalize(e.name)===normalize(row.name));
       keys.push(add(row.name,/tablet/i.test(entry?.category||'')?'tablet':'currency',null,entry?.category&&entry.id?`exchange:${entry.category}:${entry.id}`:null));
+    }else if(row.kind==='gem'){
+      keys.push(add(row.type,'gem',row.type,null,row.level));
     }else if(['unique','candidate','named-gear'].includes(row.kind)){
       const name=row.uniqueName||(['unique','named-gear'].includes(row.kind)?row.name.split(' · ')[0]:null);
       if(name)keys.push(add(name,'unique',row.type));
@@ -34,7 +36,7 @@ function applyBatch(rows,batch,payload,now=Date.now()){
     const fullName=row.uniqueName||(['unique','named-gear'].includes(row.kind)?row.name.split(' · ')[0]:row.name);
     const exact=candidates.filter(q=>normalize(q.name)===normalize(fullName));
     const matches=exact.length?exact:candidates;
-    if(!matches.length){row.status=payload.state==='collecting'?'서버 시세 수집 중':rate.state==='stale'?'서버 환율 갱신 필요 · 오래된 시세 제외':'서버에 최신 비교 시세 없음 · 옵션 복사 후 조회';continue;}
+    if(!matches.length){row.status=payload.state==='collecting'?'서버 시세 수집 중':rate.state==='stale'?'서버 환율 갱신 필요 · 오래된 시세 제외':row.kind==='gem'?(row.level?`${row.level}레벨 젬 인식 · 서버에 동일 레벨 시세 없음`:'젬 인식 · 레벨 확인 필요'):'서버에 최신 비교 시세 없음 · 옵션 복사 후 조회';continue;}
     row.unitEx=Math.min(...matches.map(q=>q.priceExalted));row.totalEx=row.unitEx*row.count;
     row.totalExMax=Math.max(...matches.map(q=>q.priceExalted))*row.count;
     row.priceKind=row.kind==='commodity'?'consumable-reference':exact.length?'unique-reference':'candidate-reference';

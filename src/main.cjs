@@ -340,7 +340,7 @@ async function scan(mode = 'full') {
         await fs.writeFile(file,encodeBitmap(crop.toBitmap(),crop.getSize()));
         const reward=await ocr.recognize(file);
         const lines=reward.lines.map(line=>({...line,x:line.x+panel.x,y:line.y+panel.y}));
-        recognized.lines=mergeCurrencies(recognized.lines,lines,catalog,['commodity','unpriced']);
+        recognized.lines=mergeCurrencies(recognized.lines,lines,catalog,['commodity','unpriced','gem']);
         recognized.metrics.ocrMs+=reward.metrics.ocrMs;recognized.metrics.cpuMs+=reward.metrics.cpuMs;
         recognized.metrics.rewardPanel=true;
       }

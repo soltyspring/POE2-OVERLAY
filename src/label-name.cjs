@@ -1,6 +1,6 @@
 function cleanLabelName(text,catalog){
   const normalize=value=>value.replace(/\s/g,'');
-  const cleaned=text.replace(/^[\s•;`\\-]+|[\s•;`\\-]+$/g,'').trim();
+  const cleaned=text.replace(/^[\s•;`\\『』「」-]+|[\s•;`\\『』「」-]+$/g,'').trim();
   const ranked=cleaned.match(/^(?:상급|고급)\s+(.+?)\s*\((\d+)등급\)$/);
   if(ranked){
     const entries=catalog.filter(e=>normalize(e.name)===normalize(ranked[1]));
